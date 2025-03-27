@@ -197,6 +197,9 @@ def test_generate_prompt() -> None:
 
         # Test with various parameters
         prompt = generate_prompt(
-            tempdir, exclude_patterns=["*.md"], include_patterns=["*.py"], respect_gitignore=False,
+            tempdir,
+            exclude_patterns=["*.md"],
+            include_patterns=["*.py"],
+            respect_gitignore=False,
         )
         assert "### test.py" in prompt

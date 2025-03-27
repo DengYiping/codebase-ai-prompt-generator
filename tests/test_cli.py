@@ -96,7 +96,9 @@ def test_main_with_cursor_override_output(capsys) -> None:
 
         # Run with both cursor and output flags
         with mock.patch.object(
-            sys, "argv", ["codebase-prompt", tempdir, "--cursor", "--output", output_file],
+            sys,
+            "argv",
+            ["codebase-prompt", tempdir, "--cursor", "--output", output_file],
         ):
             assert main() == 0
             captured = capsys.readouterr()

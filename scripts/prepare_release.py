@@ -37,7 +37,9 @@ def update_version(version_file, new_version) -> None:
         content = f.read()
 
     content = re.sub(
-        r'__version__ = ["\']([^"\']+)["\']', f'__version__ = "{new_version}"', content,
+        r'__version__ = ["\']([^"\']+)["\']',
+        f'__version__ = "{new_version}"',
+        content,
     )
 
     with open(version_file, "w", encoding="utf-8") as f:
@@ -76,7 +78,9 @@ def git_commit_and_tag(version) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare a new release")
     parser.add_argument(
-        "release_type", choices=["major", "minor", "patch"], help="The type of release to prepare",
+        "release_type",
+        choices=["major", "minor", "patch"],
+        help="The type of release to prepare",
     )
     args = parser.parse_args()
 

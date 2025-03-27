@@ -88,7 +88,10 @@ def gitignore_to_pattern(gitignore_pattern):
 
 
 def generate_file_tree(
-    root_dir, exclude_patterns=None, include_patterns=None, respect_gitignore=True,
+    root_dir,
+    exclude_patterns=None,
+    include_patterns=None,
+    respect_gitignore=True,
 ) -> tuple[str, str]:
     """Generate a file tree structure for a given directory.
 
@@ -218,7 +221,10 @@ def generate_prompt(
     repo_name = os.path.basename(repo_path)
 
     file_tree, files_content = generate_file_tree(
-        repo_path, exclude_patterns, include_patterns, respect_gitignore,
+        repo_path,
+        exclude_patterns,
+        include_patterns,
+        respect_gitignore,
     )
 
     # Build the prompt

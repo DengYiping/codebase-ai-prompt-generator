@@ -46,7 +46,6 @@ def main() -> Optional[int]:
     args = parser.parse_args()
 
     if args.version:
-
         return 0
 
     # Handle cursor output path
