@@ -3,11 +3,9 @@
 import os
 import subprocess
 import tempfile
-from pathlib import Path
 from unittest import mock
 
 from codebase_prompt_gen.core import (
-    ALWAYS_EXCLUDE,
     generate_file_tree,
     generate_prompt,
     get_global_gitignore_patterns,
