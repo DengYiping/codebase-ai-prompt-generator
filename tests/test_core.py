@@ -14,9 +14,9 @@ from codebase_prompt_gen.core import (
 )
 
 
-def test_read_gitignore_file():
+def test_read_gitignore_file() -> None:
     # Create a temporary .gitignore file
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as f:
         f.write("# Comment line\n")
         f.write("\n")  # Empty line
         f.write("*.log\n")
@@ -40,7 +40,7 @@ def test_read_gitignore_file():
     assert patterns == []
 
 
-def test_gitignore_to_pattern():
+def test_gitignore_to_pattern() -> None:
     # Test normal pattern
     assert gitignore_to_pattern("*.log") == "*.log"
 
@@ -54,9 +54,9 @@ def test_gitignore_to_pattern():
     assert gitignore_to_pattern("**/*.log") == "**/*.log"
 
 
-def test_get_global_gitignore_patterns():
+def test_get_global_gitignore_patterns() -> None:
     # Test with a mock subprocess result
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as f:
         f.write("*.log\n")
         f.write("node_modules/\n")
         temp_gitignore = f.name
@@ -90,7 +90,7 @@ def test_get_global_gitignore_patterns():
         assert patterns == []
 
 
-def test_generate_file_tree():
+def test_generate_file_tree() -> None:
     # Create a temporary directory structure
     with tempfile.TemporaryDirectory() as tempdir:
         # Create some files and directories
@@ -98,13 +98,13 @@ def test_generate_file_tree():
         os.makedirs(os.path.join(tempdir, "tests"))
         os.makedirs(os.path.join(tempdir, ".git"))
 
-        with open(os.path.join(tempdir, "src", "main.py"), "w") as f:
+        with open(os.path.join(tempdir, "src", "main.py"), "w", encoding="utf-8") as f:
             f.write("def main():\n    pass\n")
-        with open(os.path.join(tempdir, "README.md"), "w") as f:
+        with open(os.path.join(tempdir, "README.md"), "w", encoding="utf-8") as f:
             f.write("# Test Project\n")
-        with open(os.path.join(tempdir, ".gitignore"), "w") as f:
+        with open(os.path.join(tempdir, ".gitignore"), "w", encoding="utf-8") as f:
             f.write("*.log\n")
-        with open(os.path.join(tempdir, ".git", "config"), "w") as f:
+        with open(os.path.join(tempdir, ".git", "config"), "w", encoding="utf-8") as f:
             f.write("# Git config\n")
 
         # Test without any custom patterns
@@ -117,10 +117,12 @@ def test_generate_file_tree():
 
         # Verify .git directory files are excluded
         for item in file_tree:
-            assert ".git/" not in item and ".git\\" not in item
+            assert ".git/" not in item
+            assert ".git\\" not in item
 
         for info in files_content:
-            assert not info["path"].startswith(".git/") and not info["path"].startswith(".git\\")
+            assert not info["path"].startswith(".git/")
+            assert not info["path"].startswith(".git\\")
 
         # Check content
         assert any(info["path"] == "README.md" for info in files_content)
@@ -136,7 +138,7 @@ def test_generate_file_tree():
         assert not any("README.md" in item for item in file_tree)
 
         # Test with respect_gitignore=False
-        with open(os.path.join(tempdir, "test.log"), "w") as f:
+        with open(os.path.join(tempdir, "test.log"), "w", encoding="utf-8") as f:
             f.write("Test log file\n")
 
         # With respect_gitignore=True (default), the log file should be excluded
@@ -148,11 +150,11 @@ def test_generate_file_tree():
         assert any("test.log" in item for item in file_tree)
 
 
-def test_always_exclude_git():
+def test_always_exclude_git() -> None:
     """Test that .git is always excluded regardless of settings."""
     with tempfile.TemporaryDirectory() as tempdir:
         os.makedirs(os.path.join(tempdir, ".git"))
-        with open(os.path.join(tempdir, ".git", "config"), "w") as f:
+        with open(os.path.join(tempdir, ".git", "config"), "w", encoding="utf-8") as f:
             f.write("# Git config\n")
 
         # Try to include .git explicitly
@@ -160,14 +162,15 @@ def test_always_exclude_git():
 
         # Verify .git is still excluded
         for item in file_tree:
-            assert ".git/" not in item and ".git\\" not in item
+            assert ".git/" not in item
+            assert ".git\\" not in item
 
 
-def test_generate_prompt():
+def test_generate_prompt() -> None:
     """Test the generate_prompt function."""
     with tempfile.TemporaryDirectory() as tempdir:
         # Create a simple test file
-        with open(os.path.join(tempdir, "test.py"), "w") as f:
+        with open(os.path.join(tempdir, "test.py"), "w", encoding="utf-8") as f:
             f.write("print('Hello World')\n")
 
         # Test with output to stdout
@@ -187,13 +190,13 @@ def test_generate_prompt():
         assert os.path.exists(output_file)
 
         # Read the content and verify
-        with open(output_file, "r") as f:
+        with open(output_file, encoding="utf-8") as f:
             content = f.read()
             assert "# Repository:" in content
             assert "### test.py" in content
 
         # Test with various parameters
         prompt = generate_prompt(
-            tempdir, exclude_patterns=["*.md"], include_patterns=["*.py"], respect_gitignore=False
+            tempdir, exclude_patterns=["*.md"], include_patterns=["*.py"], respect_gitignore=False,
         )
         assert "### test.py" in prompt

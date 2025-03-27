@@ -1,4 +1,5 @@
 """Core functionality for the Codebase AI Prompt Generator."""
+from __future__ import annotations
 
 import fnmatch
 import os
@@ -16,11 +17,12 @@ def read_gitignore_file(file_path):
 
     Returns:
         List of gitignore patterns
+
     """
     patterns = []
     if os.path.exists(file_path):
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     # Skip empty lines and comments
@@ -37,13 +39,13 @@ def get_global_gitignore_patterns():
 
     Returns:
         List of global gitignore patterns
+
     """
     try:
         # Try to get the global gitignore file path
         result = subprocess.run(
             ["git", "config", "--global", "--get", "core.excludesfile"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
         )
@@ -66,6 +68,7 @@ def gitignore_to_pattern(gitignore_pattern):
 
     Returns:
         A glob pattern compatible with fnmatch
+
     """
     # Handle negation (patterns that start with !)
     if gitignore_pattern.startswith("!"):
@@ -85,7 +88,7 @@ def gitignore_to_pattern(gitignore_pattern):
 
 
 def generate_file_tree(
-    root_dir, exclude_patterns=None, include_patterns=None, respect_gitignore=True
+    root_dir, exclude_patterns=None, include_patterns=None, respect_gitignore=True,
 ) -> tuple[str, str]:
     """Generate a file tree structure for a given directory.
 
@@ -99,6 +102,7 @@ def generate_file_tree(
         Tuple of (file_tree, files_content) where file_tree is a list of
         formatted strings and files_content is a list of dictionaries with
         path and content keys
+
     """
     # Default exclude patterns
     default_excludes = ["__pycache__", "*.pyc", "node_modules", ".DS_Store"]
@@ -181,11 +185,11 @@ def generate_file_tree(
     for file_path in all_files:
         abs_path = os.path.join(root_dir, file_path)
         try:
-            with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(abs_path, encoding="utf-8", errors="replace") as f:
                 content = f.read()
                 files_content.append({"path": file_path, "content": content})
         except Exception as e:
-            files_content.append({"path": file_path, "content": f"[Error reading file: {str(e)}]"})
+            files_content.append({"path": file_path, "content": f"[Error reading file: {e!s}]"})
 
     return file_tree, files_content
 
@@ -208,12 +212,13 @@ def generate_prompt(
 
     Returns:
         The generated prompt as a string
+
     """
     repo_path = os.path.abspath(repo_path)
     repo_name = os.path.basename(repo_path)
 
     file_tree, files_content = generate_file_tree(
-        repo_path, exclude_patterns, include_patterns, respect_gitignore
+        repo_path, exclude_patterns, include_patterns, respect_gitignore,
     )
 
     # Build the prompt
@@ -236,6 +241,5 @@ def generate_prompt(
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(prompt)
-        print(f"Prompt written to {output_file}")
 
     return prompt
