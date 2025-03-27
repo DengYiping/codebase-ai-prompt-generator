@@ -1,0 +1,118 @@
+"""Tests for CLI functionality."""
+
+import os
+import sys
+import tempfile
+from unittest import mock
+
+from codebase_prompt_gen.cli.main import main
+
+
+def test_main_version(capsys):
+    """Test the --version flag."""
+    with mock.patch.object(sys, "argv", ["codebase-prompt", "--version"]):
+        assert main() == 0
+        captured = capsys.readouterr()
+        assert "Codebase AI Prompt Generator v" in captured.out
+
+
+def test_main_default(capsys):
+    """Test the default behavior with no arguments."""
+    with tempfile.TemporaryDirectory() as tempdir:
+        # Create a test file
+        with open(os.path.join(tempdir, "test.py"), "w") as f:
+            f.write('print("Hello")\n')
+
+        # Change to the temp directory and run the main function
+        with mock.patch.object(sys, "argv", ["codebase-prompt"]):
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tempdir)
+                assert main() == 0
+                captured = capsys.readouterr()
+                assert "# Repository:" in captured.out
+                assert "test.py" in captured.out
+            finally:
+                os.chdir(old_cwd)
+
+
+def test_main_with_output_file():
+    """Test writing output to a file."""
+    with tempfile.TemporaryDirectory() as tempdir:
+        # Create a test file
+        with open(os.path.join(tempdir, "test.py"), "w") as f:
+            f.write('print("Hello")\n')
+
+        output_file = os.path.join(tempdir, "output.md")
+
+        # Run with output file
+        with mock.patch.object(sys, "argv", ["codebase-prompt", tempdir, "--output", output_file]):
+            assert main() == 0
+
+            # Check that the file was created
+            assert os.path.exists(output_file)
+
+            # Check content
+            with open(output_file, "r") as f:
+                content = f.read()
+                assert "# Repository:" in content
+                assert "test.py" in content
+
+
+def test_main_with_cursor():
+    """Test the --cursor flag."""
+    with tempfile.TemporaryDirectory() as tempdir:
+        # Create a test file
+        with open(os.path.join(tempdir, "test.py"), "w") as f:
+            f.write('print("Hello")\n')
+
+        # Create .cursor directory to ensure it works with existing directories
+        cursor_dir = os.path.join(tempdir, ".cursor", "rules")
+        os.makedirs(cursor_dir, exist_ok=True)
+
+        # Run with cursor flag
+        with mock.patch.object(sys, "argv", ["codebase-prompt", tempdir, "--cursor"]):
+            assert main() == 0
+
+            # Check that the file was created
+            cursor_file = os.path.join(cursor_dir, "entire-codebase.mdc")
+            assert os.path.exists(cursor_file)
+
+            # Check content
+            with open(cursor_file, "r") as f:
+                content = f.read()
+                assert "# Repository:" in content
+                assert "test.py" in content
+
+
+def test_main_with_cursor_override_output(capsys):
+    """Test that --cursor overrides --output."""
+    with tempfile.TemporaryDirectory() as tempdir:
+        # Create a test file
+        with open(os.path.join(tempdir, "test.py"), "w") as f:
+            f.write('print("Hello")\n')
+
+        output_file = os.path.join(tempdir, "output.md")
+
+        # Run with both cursor and output flags
+        with mock.patch.object(
+            sys, "argv", ["codebase-prompt", tempdir, "--cursor", "--output", output_file]
+        ):
+            assert main() == 0
+            captured = capsys.readouterr()
+            assert "Warning: --cursor flag overrides --output flag" in captured.err
+
+            # Check that the cursor file was created
+            cursor_file = os.path.join(tempdir, ".cursor", "rules", "entire-codebase.mdc")
+            assert os.path.exists(cursor_file)
+
+
+def test_main_error(capsys):
+    """Test handling of errors in the main function."""
+    with mock.patch("codebase_prompt_gen.cli.main.generate_prompt") as mock_generate:
+        mock_generate.side_effect = Exception("Test error")
+
+        with mock.patch.object(sys, "argv", ["codebase-prompt"]):
+            assert main() == 1
+            captured = capsys.readouterr()
+            assert "Error: Test error" in captured.err

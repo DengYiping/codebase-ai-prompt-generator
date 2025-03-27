@@ -1,5 +1,10 @@
 # Codebase AI Prompt Generator
 
+[![PyPI version](https://img.shields.io/pypi/v/codebase-ai-prompt-generator.svg)](https://pypi.org/project/codebase-ai-prompt-generator/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/codebase-ai-prompt-generator.svg)](https://pypi.org/project/codebase-ai-prompt-generator/)
+[![CI](https://github.com/DengYiping/codebase-ai-prompt-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/DengYiping/codebase-ai-prompt-generator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A tool to scan a Git repository and generate a comprehensive prompt for AI models, including file tree structure, file paths, and content.
 
 ## Features
@@ -20,7 +25,7 @@ A tool to scan a Git repository and generate a comprehensive prompt for AI model
 pip install codebase-ai-prompt-generator
 
 # From source
-git clone https://github.com/yourusername/codebase-ai-prompt-generator.git
+git clone https://github.com/DengYiping/codebase-ai-prompt-generator.git
 cd codebase-ai-prompt-generator
 pip install -e .
 ```
@@ -137,7 +142,7 @@ To set up the development environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/codebase-ai-prompt-generator.git
+git clone https://github.com/DengYiping/codebase-ai-prompt-generator.git
 cd codebase-ai-prompt-generator
 
 # Create and activate a virtual environment
@@ -147,6 +152,48 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install in development mode
 pip install -e .
 ```
+
+## Publishing to PyPI
+
+This project is configured with GitHub Actions to automatically publish to PyPI when a new release is created:
+
+### Automated Release Process
+
+1. Run the release preparation script to update the version:
+   ```bash
+   python scripts/prepare_release.py [major|minor|patch]
+   ```
+   This script will:
+   - Update the version in `codebase_prompt_gen/__init__.py`
+   - Create a git commit with the version change
+   - Create a git tag for the new version
+
+2. Push the changes and tag to GitHub:
+   ```bash
+   git push origin main && git push origin v0.x.y
+   ```
+
+3. Create a new GitHub release from the tag
+   - Go to your repository on GitHub
+   - Navigate to "Releases"
+   - Click "Create a new release"
+   - Select the tag you just pushed
+   - Add release notes
+   - Publish the release
+
+4. The GitHub Actions workflow will automatically:
+   - Build the package
+   - Publish it to PyPI
+
+### Setting up PyPI publishing
+
+To set up publishing, you'll need to:
+
+1. Create an account on [PyPI](https://pypi.org/)
+2. Generate an API token in your PyPI account settings
+3. Add the token as a secret in your GitHub repository settings:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Add a new secret named `PYPI_API_TOKEN` with your PyPI token as the value
 
 ## Contributing
 
