@@ -2,6 +2,8 @@
 
 import argparse
 import sys
+import os
+from pathlib import Path
 from codebase_prompt_gen.core import generate_prompt
 
 
@@ -16,6 +18,8 @@ def main():
                         help='Patterns of files to include (e.g., *.py)')
     parser.add_argument('--output', type=str, 
                         help='Output file to write the prompt to')
+    parser.add_argument('--cursor', action='store_true',
+                        help='Output to .cursor/rules/entire-codebase.mdc for Cursor IDE integration')
     parser.add_argument('--no-gitignore', action='store_true',
                         help='Ignore .gitignore files (both local and global)')
     parser.add_argument('--version', action='store_true',
@@ -28,15 +32,31 @@ def main():
         print(f"Codebase AI Prompt Generator v{__version__}")
         return 0
     
+    # Handle cursor output path
+    output_file = args.output
+    if args.cursor:
+        if args.output:
+            print("Warning: --cursor flag overrides --output flag", file=sys.stderr)
+        
+        # Get the absolute path to the repository
+        repo_path = os.path.abspath(args.repo_path)
+        
+        # Create the .cursor/rules directory if it doesn't exist
+        cursor_dir = os.path.join(repo_path, '.cursor', 'rules')
+        os.makedirs(cursor_dir, exist_ok=True)
+        
+        # Set the output file path
+        output_file = os.path.join(cursor_dir, 'entire-codebase.mdc')
+    
     try:
         prompt = generate_prompt(
             args.repo_path, 
             args.exclude, 
             args.include, 
-            args.output,
+            output_file,
             respect_gitignore=not args.no_gitignore
         )
-        if not args.output:
+        if not args.output and not args.cursor:
             print(prompt)
         return 0
     except Exception as e:

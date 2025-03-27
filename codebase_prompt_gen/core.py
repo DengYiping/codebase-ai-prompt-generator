@@ -6,6 +6,10 @@ from pathlib import Path
 import subprocess
 
 
+# Set of patterns that should always be excluded
+ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
+
+
 def read_gitignore_file(file_path):
     """Read a .gitignore file and return a list of patterns.
     
@@ -96,11 +100,19 @@ def generate_file_tree(root_dir, exclude_patterns=None, include_patterns=None, r
         formatted strings and files_content is a list of dictionaries with 
         path and content keys
     """
+    # Default exclude patterns
+    default_excludes = ["__pycache__", "*.pyc", "node_modules", ".DS_Store"]
+    
+    # Always include the .git folder in exclusions
     if exclude_patterns is None:
-        exclude_patterns = [".git", "__pycache__", "*.pyc", "node_modules", ".DS_Store"]
+        exclude_patterns = default_excludes + list(ALWAYS_EXCLUDE)
     else:
-        # Make a copy to avoid modifying the original list
+        # Make a copy to avoid modifying the original list and ensure .git is excluded
         exclude_patterns = exclude_patterns.copy()
+        # Add default exclusions for .git
+        for pattern in ALWAYS_EXCLUDE:
+            if pattern not in exclude_patterns:
+                exclude_patterns.append(pattern)
     
     # Add gitignore patterns if requested
     if respect_gitignore:
@@ -125,8 +137,12 @@ def generate_file_tree(root_dir, exclude_patterns=None, include_patterns=None, r
     # Get all files and directories
     all_files = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
+        # Skip .git directory entirely
+        if '.git' in dirpath.split(os.path.sep):
+            continue
+            
         # Skip excluded directories
-        dirnames[:] = [d for d in dirnames if not any(fnmatch.fnmatch(d, pattern) for pattern in exclude_patterns)]
+        dirnames[:] = [d for d in dirnames if d != '.git' and not any(fnmatch.fnmatch(d, pattern) for pattern in exclude_patterns)]
         
         # Process files
         rel_path = os.path.relpath(dirpath, root_dir)
