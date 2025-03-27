@@ -16,6 +16,8 @@ def main():
                         help='Patterns of files to include (e.g., *.py)')
     parser.add_argument('--output', type=str, 
                         help='Output file to write the prompt to')
+    parser.add_argument('--no-gitignore', action='store_true',
+                        help='Ignore .gitignore files (both local and global)')
     parser.add_argument('--version', action='store_true',
                         help='Show version information and exit')
     
@@ -27,7 +29,13 @@ def main():
         return 0
     
     try:
-        prompt = generate_prompt(args.repo_path, args.exclude, args.include, args.output)
+        prompt = generate_prompt(
+            args.repo_path, 
+            args.exclude, 
+            args.include, 
+            args.output,
+            respect_gitignore=not args.no_gitignore
+        )
         if not args.output:
             print(prompt)
         return 0

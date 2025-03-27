@@ -8,6 +8,7 @@ A tool to scan a Git repository and generate a comprehensive prompt for AI model
 - Includes file contents formatted for AI prompts
 - Customizable file inclusion/exclusion via patterns
 - Option to save output to a file or print to console
+- Automatically respects local and global .gitignore files
 - Installable CLI tool
 
 ## Installation
@@ -45,9 +46,20 @@ codebase-prompt --output prompt.md
 # Show version information
 codebase-prompt --version
 
+# Ignore .gitignore files (both local and global)
+codebase-prompt --no-gitignore
+
 # Combine options
 codebase-prompt /path/to/repository --exclude "node_modules" "*.pyc" --include "*.py" "*.js" --output prompt.md
 ```
+
+## .gitignore Support
+
+By default, the tool respects both:
+- The repository's local `.gitignore` file
+- The user's global gitignore file (found via `git config --global --get core.excludesfile`)
+
+Files matching any pattern in these files will be excluded from the output. To disable this feature, use the `--no-gitignore` flag.
 
 ## Example Output
 
