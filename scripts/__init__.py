@@ -1,1 +1,1 @@
-"""Helper scripts for development and maintenance.""" 
+"""Helper scripts for development and maintenance."""

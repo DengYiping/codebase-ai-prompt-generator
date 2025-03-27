@@ -3,7 +3,6 @@
 import argparse
 import os
 import sys
-from pathlib import Path
 
 from codebase_prompt_gen.core import generate_prompt
 
@@ -25,7 +24,10 @@ def main():
         help="Patterns of files/directories to exclude (e.g., *.log)",
     )
     parser.add_argument(
-        "--include", type=str, nargs="+", help="Patterns of files to include (e.g., *.py)"
+        "--include",
+        type=str,
+        nargs="+",
+        help="Patterns of files to include (e.g., *.py)",
     )
     parser.add_argument("--output", type=str, help="Output file to write the prompt to")
     parser.add_argument(

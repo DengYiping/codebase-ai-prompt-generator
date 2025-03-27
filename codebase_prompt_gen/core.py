@@ -3,7 +3,6 @@
 import fnmatch
 import os
 import subprocess
-from pathlib import Path
 
 # Set of patterns that should always be excluded
 ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
@@ -87,7 +86,7 @@ def gitignore_to_pattern(gitignore_pattern):
 
 def generate_file_tree(
     root_dir, exclude_patterns=None, include_patterns=None, respect_gitignore=True
-):
+) -> tuple[str, str]:
     """Generate a file tree structure for a given directory.
 
     Args:
@@ -197,7 +196,7 @@ def generate_prompt(
     include_patterns=None,
     output_file=None,
     respect_gitignore=True,
-):
+) -> str:
     """Generate a prompt for AI models containing the file tree and file contents.
 
     Args:
