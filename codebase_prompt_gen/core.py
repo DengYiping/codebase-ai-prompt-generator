@@ -25,10 +25,10 @@ def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
     """
     if not gitignore_path.exists():
         # Return a function that always returns False (doesn't ignore anything)
-        return lambda path: False
+        return lambda _: False
 
+    # Create a matcher from the gitignore file
     try:
-        # Create a matcher from the gitignore file
         matcher = parse_gitignore(gitignore_path)
 
         # Wrap the matcher to handle both absolute and relative paths
@@ -48,12 +48,12 @@ def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
             else:
                 # If already relative, use it directly
                 return matcher(file_path)
-
-        return path_matcher
     except Exception as e:
         logging.warning("Error parsing gitignore file %s: %s", gitignore_path, e)
         # Return a function that always returns False (doesn't ignore anything)
-        return lambda path: False
+        return lambda _: False
+
+    return path_matcher
 
 
 def generate_file_tree(

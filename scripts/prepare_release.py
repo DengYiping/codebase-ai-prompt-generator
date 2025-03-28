@@ -21,7 +21,7 @@ from pathlib import Path
 def get_current_version():
     """Get the current version from __init__.py."""
     init_file = Path("codebase_prompt_gen/__init__.py")
-    with open(init_file, encoding="utf-8") as f:
+    with init_file.open(encoding="utf-8") as f:
         content = f.read()
 
     match = re.search(r'__version__ = ["\']([^"\']+)["\']', content)
@@ -34,7 +34,8 @@ def get_current_version():
 
 def update_version(version_file, new_version) -> None:
     """Update the version in __init__.py."""
-    with open(version_file, encoding="utf-8") as f:
+    version_path = Path(version_file)
+    with version_path.open(encoding="utf-8") as f:
         content = f.read()
 
     content = re.sub(
@@ -43,7 +44,7 @@ def update_version(version_file, new_version) -> None:
         content,
     )
 
-    with open(version_file, "w", encoding="utf-8") as f:
+    with version_path.open("w", encoding="utf-8") as f:
         f.write(content)
 
 

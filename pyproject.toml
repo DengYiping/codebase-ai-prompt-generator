@@ -118,22 +118,25 @@ exclude = [
 #  T20: flake8-print
 #  PT: flake8-pytest-style
 select = [
-    "E",  # pycodestyle errors
-    "F",  # Pyflakes
-    "W",  # pycodestyle warnings
-    "I",  # isort
-    "UP", # pyupgrade
-    "B",  # flake8-bugbear
-    "A",  # flake8-builtins
-    "C4", # flake8-comprehensions
-    "SIM",# flake8-simplify
-    "ARG",# flake8-unused-arguments
-    "PTH",# flake8-use-pathlib
-    "PL", # pylint
-    "PT", # pytest
-    "RUF",# ruff specific rules
-    "TRY",# try statements
-    # "T20", # Uncomment if you want to ban 'print'
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    # "S",    # flake8-bandit
+    "ASYNC",# flake8-async
+    # "ANN",  # flake8-annotation
+    "B",    # flake8-bugbear
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "PL",   # pylint
+    "PT",   # pytest
+    "RUF",  # ruff specific rules
+    "TRY",  # try statements
+    # "T20",# Uncomment if you want to ban 'print'
 ]
 
 # Ignore specific rule codes globally.
@@ -159,7 +162,7 @@ ignore = [
 
 # You can ignore specific rules for specific files or directories.
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["SIM117"]  # Example: Allow 'assert' and magic values in tests
+"tests/*" = ["SIM117", "S101"]  # Example: Allow 'assert' and magic values in tests
 # "__init__.py" = ["F401"] # Allow unused imports in __init__.py
 
 [tool.ruff.format]
@@ -167,6 +170,7 @@ docstring-code-format = true # Format code examples in docstrings
 
 [dependency-groups]
 dev = [
+    "coverage>=7.7.1",
     "hs-pylint-runner>=1.0.92",
     "pytest>=8.3.5",
     "ruff>=0.11.2",

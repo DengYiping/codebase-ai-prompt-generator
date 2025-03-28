@@ -3,6 +3,7 @@
 import os
 import sys
 import tempfile
+from pathlib import Path
 from unittest import mock
 
 from codebase_prompt_gen.cli.main import main
@@ -19,18 +20,18 @@ def test_main_version(capsys) -> None:
 def test_main_default(capsys) -> None:
     """Test the default behavior with no arguments."""
     with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
         # Create a test file
-        with open(os.path.join(tempdir, "test.py"), "w", encoding="utf-8") as f:
-            f.write('print("Hello")\n')
+        (temp_path / "test.py").write_text('print("Hello")\n')
 
         # Mock the gitignore parser
         def mock_parse_gitignore(_gitignore_file):
-            return lambda path: False  # No ignores from gitignore
+            return lambda _: False  # No ignores from gitignore
 
         # Change to the temp directory and run the main function
         with mock.patch.object(sys, "argv", ["codebase-prompt"]):
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                old_cwd = os.getcwd()
+                old_cwd = Path.cwd()
                 try:
                     os.chdir(tempdir)
                     assert main() == 0
@@ -44,45 +45,46 @@ def test_main_default(capsys) -> None:
 def test_main_with_output_file() -> None:
     """Test writing output to a file."""
     with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
         # Create a test file
-        with open(os.path.join(tempdir, "test.py"), "w", encoding="utf-8") as f:
-            f.write('print("Hello")\n')
+        (temp_path / "test.py").write_text('print("Hello")\n')
 
-        output_file = os.path.join(tempdir, "output.md")
+        output_file = temp_path / "output.md"
 
         # Mock the gitignore parser
         def mock_parse_gitignore(_gitignore_file):
-            return lambda path: False  # No ignores from gitignore
+            return lambda _: False  # No ignores from gitignore
 
         # Run with output file
-        with mock.patch.object(sys, "argv", ["codebase-prompt", tempdir, "--output", output_file]):
+        with mock.patch.object(
+            sys, "argv", ["codebase-prompt", tempdir, "--output", str(output_file)]
+        ):
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
                 assert main() == 0
 
                 # Check that the file was created
-                assert os.path.exists(output_file)
+                assert output_file.exists()
 
                 # Check content
-                with open(output_file, encoding="utf-8") as f:
-                    content = f.read()
-                    assert "# Repository:" in content
-                    assert "test.py" in content
+                content = output_file.read_text(encoding="utf-8")
+                assert "# Repository:" in content
+                assert "test.py" in content
 
 
 def test_main_with_cursor() -> None:
     """Test the --cursor flag."""
     with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
         # Create a test file
-        with open(os.path.join(tempdir, "test.py"), "w", encoding="utf-8") as f:
-            f.write('print("Hello")\n')
+        (temp_path / "test.py").write_text('print("Hello")\n')
 
         # Create .cursor directory to ensure it works with existing directories
-        cursor_dir = os.path.join(tempdir, ".cursor", "rules")
-        os.makedirs(cursor_dir, exist_ok=True)
+        cursor_dir = temp_path / ".cursor" / "rules"
+        cursor_dir.mkdir(parents=True, exist_ok=True)
 
         # Mock the gitignore parser
         def mock_parse_gitignore(_gitignore_file):
-            return lambda path: False  # No ignores from gitignore
+            return lambda _: False  # No ignores from gitignore
 
         # Run with cursor flag
         with mock.patch.object(sys, "argv", ["codebase-prompt", tempdir, "--cursor"]):
@@ -90,34 +92,33 @@ def test_main_with_cursor() -> None:
                 assert main() == 0
 
                 # Check that the file was created
-                cursor_file = os.path.join(cursor_dir, "entire-codebase.mdc")
-                assert os.path.exists(cursor_file)
+                cursor_file = cursor_dir / "entire-codebase.mdc"
+                assert cursor_file.exists()
 
                 # Check content
-                with open(cursor_file, encoding="utf-8") as f:
-                    content = f.read()
-                    assert "# Repository:" in content
-                    assert "test.py" in content
+                content = cursor_file.read_text(encoding="utf-8")
+                assert "# Repository:" in content
+                assert "test.py" in content
 
 
 def test_main_with_cursor_override_output(capsys) -> None:
     """Test that --cursor overrides --output."""
     with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
         # Create a test file
-        with open(os.path.join(tempdir, "test.py"), "w", encoding="utf-8") as f:
-            f.write('print("Hello")\n')
+        (temp_path / "test.py").write_text('print("Hello")\n')
 
-        output_file = os.path.join(tempdir, "output.md")
+        output_file = temp_path / "output.md"
 
         # Mock the gitignore parser
         def mock_parse_gitignore(_gitignore_file):
-            return lambda path: False  # No ignores from gitignore
+            return lambda _: False  # No ignores from gitignore
 
         # Run with both cursor and output flags
         with mock.patch.object(
             sys,
             "argv",
-            ["codebase-prompt", tempdir, "--cursor", "--output", output_file],
+            ["codebase-prompt", tempdir, "--cursor", "--output", str(output_file)],
         ):
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
                 assert main() == 0
@@ -125,8 +126,8 @@ def test_main_with_cursor_override_output(capsys) -> None:
                 assert "Warning: --cursor flag overrides --output flag" in captured.err
 
                 # Check that the cursor file was created
-                cursor_file = os.path.join(tempdir, ".cursor", "rules", "entire-codebase.mdc")
-                assert os.path.exists(cursor_file)
+                cursor_file = temp_path / ".cursor" / "rules" / "entire-codebase.mdc"
+                assert cursor_file.exists()
 
 
 def test_main_error(capsys) -> None:
