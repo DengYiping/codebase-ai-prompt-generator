@@ -149,16 +149,13 @@ def test_generate_prompt_original() -> None:
         gitignore_file.write_text("excluded.js\n")
 
         # Create a proper mock for gitignore parser
-        def mock_parse_gitignore(gitignore_file_path):
-            with open(gitignore_file_path, "r") as f:
+        def mock_parse_gitignore(gitignore_file_path: Path):
+            with gitignore_file_path.open(encoding="utf-8") as f:
                 patterns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
             def matcher(path_str):
                 path_str = str(path_str)
-                for pattern in patterns:
-                    if pattern in path_str:
-                        return True
-                return False
+                return any(pattern in path_str for pattern in patterns)
 
             return matcher
 

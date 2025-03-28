@@ -83,7 +83,7 @@ def generate_file_tree(
     combined_exclude = set(exclude_patterns) | ALWAYS_EXCLUDE
 
     # Set up gitignore matcher if requested
-    gitignore_matcher: Callable[[Path], bool] = lambda x: False
+    gitignore_matcher: Callable[[Path], bool] = lambda _: False
 
     if respect_gitignore:
         local_gitignore_path = root_dir / ".gitignore"

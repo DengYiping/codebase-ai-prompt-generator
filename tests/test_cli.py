@@ -1,7 +1,5 @@
 """Tests for CLI functionality."""
 
-import io
-import logging
 import os
 import sys
 import tempfile
