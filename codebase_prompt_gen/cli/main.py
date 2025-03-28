@@ -1,18 +1,22 @@
 """Command-line interface for Codebase AI Prompt Generator."""
 
 import argparse
-import os
+import logging
 import sys
+from pathlib import Path
 from typing import Optional
 
 from codebase_prompt_gen.core import generate_prompt
 
 # Version information
 __version__ = "0.1.0"
+version_info = tuple(int(part) for part in __version__.split("."))
+
+__all__ = ["__version__", "version_info"]
 
 
 def main() -> Optional[int]:
-    """Main entry point for the CLI."""
+    """Execute the main CLI functionality."""
     parser = argparse.ArgumentParser(description="Generate AI prompts from Git repositories")
     parser.add_argument(
         "repo_path",
@@ -58,17 +62,17 @@ def main() -> Optional[int]:
             pass
 
         # Get the absolute path to the repository
-        repo_path = os.path.abspath(args.repo_path)
+        repo_path = Path(args.repo_path).resolve()
 
         # Create the .cursor/rules directory if it doesn't exist
-        cursor_dir = os.path.join(repo_path, ".cursor", "rules")
-        os.makedirs(cursor_dir, exist_ok=True)
+        cursor_dir = repo_path / ".cursor" / "rules"
+        cursor_dir.mkdir(parents=True, exist_ok=True)
 
         # Set the output file path
-        output_file = os.path.join(cursor_dir, "entire-codebase.mdc")
+        output_file = cursor_dir / "entire-codebase.mdc"
 
     try:
-        generate_prompt(
+        output = generate_prompt(
             args.repo_path,
             args.exclude,
             args.include,
@@ -76,11 +80,11 @@ def main() -> Optional[int]:
             respect_gitignore=not args.no_gitignore,
         )
         if not args.output and not args.cursor:
-            # Print to stdout if no output file is specified
-            pass
-        return 0
-    except Exception:
+            print(output)
+    except (OSError, ValueError, FileNotFoundError):
+        logging.exception("Error generating prompt!")
         return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import fnmatch
-import os
+import logging
 import subprocess
+from pathlib import Path
 
 # Set of patterns that should always be excluded
 ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
 
 
-def read_gitignore_file(file_path):
+def read_gitignore_file(file_path: str | Path) -> list[str]:
     """
     Read a .gitignore file and return a list of patterns.
 
@@ -21,21 +22,22 @@ def read_gitignore_file(file_path):
 
     """
     patterns = []
-    if os.path.exists(file_path):
+    path = Path(file_path)
+    if path.exists():
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with path.open(encoding="utf-8") as f:
                 for line in f:
-                    line = line.strip()
+                    line_content = line.strip()
                     # Skip empty lines and comments
-                    if line and not line.startswith("#"):
-                        patterns.append(line)
-        except Exception:
-            # Silently fail if the file can't be read
-            pass
+                    if line_content and not line_content.startswith("#"):
+                        patterns.append(line_content)
+        except OSError as e:
+            # Log the error but continue without failing
+            logging.warning("Error reading gitignore file %s: %s", file_path, e)
     return patterns
 
 
-def get_global_gitignore_patterns():
+def get_global_gitignore_patterns() -> list[str]:
     """
     Get global gitignore patterns.
 
@@ -53,16 +55,16 @@ def get_global_gitignore_patterns():
         )
 
         if result.returncode == 0 and result.stdout.strip():
-            global_gitignore_path = os.path.expanduser(result.stdout.strip())
+            global_gitignore_path = Path(result.stdout.strip()).expanduser()
             return read_gitignore_file(global_gitignore_path)
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
         # Git not installed or other error
-        pass
+        logging.debug("Error getting global gitignore: %s", e)
 
     return []
 
 
-def gitignore_to_pattern(gitignore_pattern):
+def gitignore_to_pattern(gitignore_pattern: str) -> str:
     """
     Convert a gitignore pattern to a glob pattern.
 
@@ -91,11 +93,12 @@ def gitignore_to_pattern(gitignore_pattern):
 
 
 def generate_file_tree(
-    root_dir,
-    exclude_patterns=None,
-    include_patterns=None,
-    respect_gitignore=True,
-) -> tuple[str, str]:
+    root_dir: str | Path,
+    exclude_patterns: list[str] | None = None,
+    include_patterns: list[str] | None = None,
+    *,
+    respect_gitignore: bool = True,
+) -> tuple[list[str], list[dict[str, str]]]:
     """
     Generate a file tree structure for a given directory.
 
@@ -113,6 +116,7 @@ def generate_file_tree(
     """
     # Default exclude patterns
     default_excludes = ["__pycache__", "*.pyc", "node_modules", ".DS_Store"]
+    root_path = Path(root_dir)
 
     # Always include the .git folder in exclusions
     if exclude_patterns is None:
@@ -135,7 +139,7 @@ def generate_file_tree(
                 exclude_patterns.append(glob_pattern)
 
         # Add local gitignore patterns
-        local_gitignore_path = os.path.join(root_dir, ".gitignore")
+        local_gitignore_path = root_path / ".gitignore"
         local_patterns = read_gitignore_file(local_gitignore_path)
         for pattern in local_patterns:
             glob_pattern = gitignore_to_pattern(pattern)
@@ -147,66 +151,57 @@ def generate_file_tree(
 
     # Get all files and directories
     all_files = []
-    for dirpath, dirnames, filenames in os.walk(root_dir):
+    # Use Path.rglob instead of os.walk
+    for path in sorted(root_path.rglob("*")):
         # Skip .git directory entirely
-        if ".git" in dirpath.split(os.path.sep):
+        if ".git" in path.parts:
             continue
 
-        # Skip excluded directories
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if d != ".git" and not any(fnmatch.fnmatch(d, pattern) for pattern in exclude_patterns)
-        ]
+        rel_path = path.relative_to(root_path)
+        rel_path_str = str(rel_path)
 
-        # Process files
-        rel_path = os.path.relpath(dirpath, root_dir)
-        if rel_path == ".":
-            rel_path = ""
+        # Check if path should be excluded
+        if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in exclude_patterns) or any(
+            fnmatch.fnmatch(path.name, pattern) for pattern in exclude_patterns
+        ):
+            continue
 
-        # Add directory to tree
-        if rel_path:
-            file_tree.append(f"📁 {rel_path}/")
-
-        # Add files to tree
-        for filename in sorted(filenames):
-            # Check if full path matches any exclude pattern
-            file_path = os.path.join(rel_path, filename) if rel_path else filename
-            if any(fnmatch.fnmatch(file_path, pattern) for pattern in exclude_patterns) or any(
-                fnmatch.fnmatch(filename, pattern) for pattern in exclude_patterns
-            ):
-                continue
-
+        # Handle directories
+        if path.is_dir():
+            file_tree.append(f"📁 {rel_path_str}/")
+        # Handle files
+        elif path.is_file():
             # Apply include patterns if specified
             if (
                 include_patterns
-                and not any(fnmatch.fnmatch(filename, pattern) for pattern in include_patterns)
-                and not any(fnmatch.fnmatch(file_path, pattern) for pattern in include_patterns)
+                and not any(fnmatch.fnmatch(path.name, pattern) for pattern in include_patterns)
+                and not any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in include_patterns)
             ):
                 continue
 
-            file_tree.append(f"📄 {file_path}")
-            all_files.append(file_path)
+            file_tree.append(f"📄 {rel_path_str}")
+            all_files.append(rel_path_str)
 
     # Get content of all files
     for file_path in all_files:
-        abs_path = os.path.join(root_dir, file_path)
+        abs_path = root_path / file_path
         try:
-            with open(abs_path, encoding="utf-8", errors="replace") as f:
+            with abs_path.open(encoding="utf-8", errors="replace") as f:
                 content = f.read()
                 files_content.append({"path": file_path, "content": content})
-        except Exception as e:
+        except OSError as e:
             files_content.append({"path": file_path, "content": f"[Error reading file: {e!s}]"})
 
     return file_tree, files_content
 
 
 def generate_prompt(
-    repo_path,
-    exclude_patterns=None,
-    include_patterns=None,
-    output_file=None,
-    respect_gitignore=True,
+    repo_path: str | Path,
+    exclude_patterns: list[str] | None = None,
+    include_patterns: list[str] | None = None,
+    output_file: str | Path | None = None,
+    *,
+    respect_gitignore: bool = True,
 ) -> str:
     """
     Generate a prompt for AI models containing the file tree and file contents.
@@ -222,14 +217,14 @@ def generate_prompt(
         The generated prompt as a string
 
     """
-    repo_path = os.path.abspath(repo_path)
-    repo_name = os.path.basename(repo_path)
+    repo_path_obj = Path(repo_path).resolve()
+    repo_name = repo_path_obj.name
 
     file_tree, files_content = generate_file_tree(
-        repo_path,
+        repo_path_obj,
         exclude_patterns,
         include_patterns,
-        respect_gitignore,
+        respect_gitignore=respect_gitignore,
     )
 
     # Build the prompt
@@ -250,7 +245,8 @@ def generate_prompt(
 
     # Write to file or print
     if output_file:
-        with open(output_file, "w", encoding="utf-8") as f:
+        output_path = Path(output_file)
+        with output_path.open("w", encoding="utf-8") as f:
             f.write(prompt)
 
     return prompt
