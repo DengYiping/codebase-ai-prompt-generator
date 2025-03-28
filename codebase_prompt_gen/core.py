@@ -209,7 +209,6 @@ def generate_prompt(
     exclude_patterns: list[str],
     include_patterns: list[str],
     output_file: Path | None = None,
-    *,
     respect_gitignore: bool = True,
 ) -> None:
     """

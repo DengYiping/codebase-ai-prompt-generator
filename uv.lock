@@ -1,6 +1,6 @@
 version = 1
 revision = 1
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [[package]]
 name = "black"
@@ -33,10 +33,6 @@ wheels = [
     { url = "https://build.hubteam.com/pypi-mirror/packages/52/e5/f7bf17207cf87fa6e9b676576749c6b6ed0d70f179a3d812c997870291c3/black-25.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "md5:1e0feec594f34f9d9b93a55a58e25352" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/e3/ee/adda3d46d4a9120772fae6de454c8495603c37c4c3b9c60f25b1ab6401fe/black-25.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "md5:7651c68ef98f92ae95506720f08e9123" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/cc/64/94eb5f45dcb997d2082f097a3944cfc7fe87e071907f677e80788a2d7b7a/black-25.1.0-cp313-cp313-win_amd64.whl", hash = "md5:67d6ce7a13edfeca68415ef05d642700" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/d3/b6/ae7507470a4830dbbfe875c701e84a4a5fb9183d1497834871a715716a92/black-25.1.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "md5:92aec5e71aa40f141d3be49eed3a9c56" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/24/c1/ae36fa59a59f9363017ed397750a0cd79a470490860bc7713967d89cdd31/black-25.1.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "md5:cb5210889fb84f0b014d14734ea49f27" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/ac/b6/98f832e7a6c49aa3a464760c67c7856363aa644f2f3c74cf7d624168607e/black-25.1.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "md5:6b981dd0bc6fcc652ed8d055397e9e74" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/ce/e9/2cb0a017eb7024f70e0d2e9bdb8c5a5b078c5740c7f8816065d06f04c557/black-25.1.0-cp39-cp39-win_amd64.whl", hash = "md5:34e7a479443b1f95515057e0481d1923" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/09/71/54e999902aed72baf26bca0d50781b01838251a462612966e9fc4891eadd/black-25.1.0-py3-none-any.whl", hash = "md5:29f99448c2918633bc1a96c55b4c0639" },
 ]
 
@@ -54,7 +50,7 @@ wheels = [
 
 [[package]]
 name = "codebase-ai-prompt-generator"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "gitignore-parser" },
@@ -144,16 +140,6 @@ wheels = [
     { url = "https://build.hubteam.com/pypi-mirror/packages/e4/e8/1d6f1a6651672c64f45ffad05306dad9c4c189bec694270822508049b2cb/coverage-7.7.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "md5:a4fafb878b924cce0c017dbfd9ec2853" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/6b/ea/1b9a14cf3e2bc3fd9de23a336a8082091711c5f480b500782d59e84a8fe5/coverage-7.7.1-cp313-cp313t-win32.whl", hash = "md5:f448a92f87f85b3b9b9d14643467c84a" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/cc/bb/faa6bcf769cb7b3b660532a30d77c440289b40636c7f80e498b961295d07/coverage-7.7.1-cp313-cp313t-win_amd64.whl", hash = "md5:46047c1220b475d61c83eacc3720c4f9" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/18/8a/c99478521fb4ea0370c72c8ce2c6a90973eeaccdb9e87b61b30ee090ace2/coverage-7.7.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "md5:3560ad1c34d4ad6d44f3af51780f1d38" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/e0/8c/fefae75825b99ac4b845ec48b7d585269838a10907bbcb1015b086b64b9f/coverage-7.7.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "md5:1bde02ea9f3e927157a9ec4cc5847f12" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/4f/bf/1a48c4b3cf533910bb52e6bf18666a11ec19dfba01330b89e51df0269259/coverage-7.7.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:995c77067a349c3a0f6082795494af14" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/9d/63/22684c48520501edd4cb62ee27c016ea74935bf6a435d23c9cd75bd51c15/coverage-7.7.1-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "md5:2e680e819989f4adbb506ac040b56e56" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/15/2b/a1f704e986671bbeffd1edb1e9ec6a98c4bfe40db3e6789147f008136256/coverage-7.7.1-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "md5:28512a9f19e7249989d41e756a1c3e10" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/db/5a/5d98375fe1a42a61709c96b51b89959a537099c912d63cfe6b362b415fbe/coverage-7.7.1-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "md5:c0364f205e70ab7367505e06c1945d66" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/a1/1b/ac5cac616de92c7a8dae17c585e86dcda95f2c39bc438c91ed1c9a5893ba/coverage-7.7.1-cp39-cp39-musllinux_1_2_i686.whl", hash = "md5:364da8e58e2d4a45679ed26fcb0b0f7e" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/4f/19/ce7cb8e9269b74da0b4a337a78b1ff8896d8584b692e6b67c7bf53b15b1c/coverage-7.7.1-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "md5:6a777a7793c9845ac049e1ed0fe9596e" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/60/3a/bcd8e5c0bb76e1c9a275e817498e80d1f7cdc7020c941d616d9d22487776/coverage-7.7.1-cp39-cp39-win32.whl", hash = "md5:0751f0c2f47be25bbd6f5d43e337d0ea" },
-    { url = "https://build.hubteam.com/pypi-mirror/packages/78/b4/d9f39df48a336276582890c3833485ba43329d40aa4e269292c52408b1fb/coverage-7.7.1-cp39-cp39-win_amd64.whl", hash = "md5:89f3fdfb027de53dc41361b8832da642" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/f9/4e/a501ec475ed455c1ee1570063527afe2c06ab1039f8ff18eefecfbdac8fd/coverage-7.7.1-pp39.pp310.pp311-none-any.whl", hash = "md5:ec1ade70b2fb64da4915070df885858e" },
     { url = "https://build.hubteam.com/pypi-mirror/packages/52/26/9f53293ff4cc1d47d98367ce045ca2e62746d6be74a5c6851a474eabf59b/coverage-7.7.1-py3-none-any.whl", hash = "md5:25e6dcd537ef5320aef900f5197b4e58" },
 ]
