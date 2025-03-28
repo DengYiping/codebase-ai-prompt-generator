@@ -4,6 +4,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 from codebase_prompt_gen.core import generate_prompt
 
@@ -76,13 +77,41 @@ def main() -> int | None:
         output_file = cursor_dir / "entire-codebase.mdc"
 
     try:
-        generate_prompt(
-            Path(args.repo_path),
-            args.exclude or [],
-            args.include or [],
-            output_file,
-            respect_gitignore=not args.no_gitignore,
-        )
+        if output_file:
+            # Create parent directories if they don't exist
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Open the file for writing
+            file_handle = output_file.open("w", encoding="utf-8")
+
+            # Create a writer function that writes to the file
+            def file_writer(text: str) -> Any:
+                file_handle.write(text)
+                return None
+
+            output_stream = file_writer
+            logging.info("Writing prompt to file: %s", output_file)
+
+            try:
+                generate_prompt(
+                    Path(args.repo_path),
+                    args.exclude or [],
+                    args.include or [],
+                    output_stream=output_stream,
+                    respect_gitignore=not args.no_gitignore,
+                )
+            finally:
+                # Ensure the file is closed
+                file_handle.close()
+        else:
+            # Use default stdout output
+            generate_prompt(
+                Path(args.repo_path),
+                args.exclude or [],
+                args.include or [],
+                output_stream=None,
+                respect_gitignore=not args.no_gitignore,
+            )
     except (OSError, ValueError, FileNotFoundError):
         logging.exception("Error generating prompt!")
         return 1

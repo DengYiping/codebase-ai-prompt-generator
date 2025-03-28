@@ -4,6 +4,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from gitignore_parser import parse_gitignore
 
@@ -208,7 +209,7 @@ def generate_prompt(
     repo_path: Path,
     exclude_patterns: list[str],
     include_patterns: list[str],
-    output_file: Path | None = None,
+    output_stream: Callable[[str], Any] | None = None,
     respect_gitignore: bool = True,
 ) -> None:
     """
@@ -218,11 +219,12 @@ def generate_prompt(
         repo_path: Path to the Git repository root directory
         exclude_patterns: List of glob patterns to exclude
         include_patterns: List of glob patterns to include (files only)
-        output_file: Optional file path to write the prompt to
+        output_stream: Optional callable that accepts a string and writes it
+                      (defaults to sys.stdout.write if None)
         respect_gitignore: Whether to respect .gitignore files
 
     Returns:
-        None. Prints to stdout or writes to the specified file.
+        None. Writes prompt using the provided output_stream or stdout.
     """
     # Configure basic logging
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -261,23 +263,13 @@ def generate_prompt(
     prompt_header += "## File Contents\n\n"
 
     # --- Output Handling ---
-    writer: Callable[[str], int | None] = lambda _: None
+    writer: Callable[[str], Any] = (
+        output_stream
+        if output_stream
+        else lambda text: print(text, end="", flush=True, file=sys.stdout)
+    )
 
-    output_stream = None
     try:
-        if output_file:
-            output_path = Path(output_file).resolve()
-            output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-            output_stream = output_path.open("w", encoding="utf-8")
-            writer = output_stream.write
-            logging.info("Writing prompt to file: %s", output_path)
-        else:
-            # Use print for stdout, handling potential encoding issues
-
-            writer = lambda text: print(text, end="", flush=True, file=sys.stdout)
-
-            logging.info("Printing prompt to standard output.")
-
         # Write header
         writer(prompt_header)
 
@@ -304,9 +296,6 @@ def generate_prompt(
         logging.info("Prompt generation complete.")
 
     except OSError:
-        logging.exception("Error writing to output %s", output_file or "stdout")
+        logging.exception("Error writing output")
     except Exception:
-        logging.exception("An unexpected error occurred during prompt generation: %s")
-    finally:
-        if output_stream:
-            output_stream.close()
+        logging.exception("An unexpected error occurred during prompt generation")

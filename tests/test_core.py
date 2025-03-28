@@ -133,54 +133,96 @@ def test_always_exclude_git() -> None:
 
 def test_generate_prompt_original() -> None:
     """Test the generate_prompt function."""
+    # Create a simple mock repo with 2 files - one to include and one to exclude
     with tempfile.TemporaryDirectory() as tempdir:
         temp_path = Path(tempdir)
-        # Create a simple test file
-        (temp_path / "test.py").write_text("print('Hello World')\n")
+        # Create a file to include
+        included_file = temp_path / "included.py"
+        included_file.write_text("# Python file for testing\nprint('Hello World')")
 
-        # Mock the gitignore parser
-        def mock_parse_gitignore(_gitignore_file):
-            return lambda _: False  # No ignores from gitignore
+        # Create a file to exclude
+        excluded_file = temp_path / "excluded.js"
+        excluded_file.write_text("// JavaScript file for testing\nconsole.log('Hello World')")
 
-        # Capture stdout to check the output
-        with mock.patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
-            with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                # Test with output to stdout
-                generate_prompt(Path(tempdir), exclude_patterns=[], include_patterns=[])
+        # Create a .gitignore file
+        gitignore_file = temp_path / ".gitignore"
+        gitignore_file.write_text("excluded.js\n")
 
-                # Get the captured output
-                prompt = mock_stdout.getvalue()
+        # Create a proper mock for gitignore parser
+        def mock_parse_gitignore(gitignore_file_path):
+            with open(gitignore_file_path, "r") as f:
+                patterns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
-                # Check prompt content
-                assert "# Repository:" in prompt
-                assert "## File Tree Structure" in prompt
-                assert "## File Contents" in prompt
-                assert "test.py" in prompt
+            def matcher(path_str):
+                path_str = str(path_str)
+                for pattern in patterns:
+                    if pattern in path_str:
+                        return True
+                return False
 
-                # Test with output to file
-                output_file = temp_path / "output.md"
-                generate_prompt(
-                    Path(tempdir), exclude_patterns=[], include_patterns=[], output_file=output_file
-                )
+            return matcher
 
-                # Verify file was created
-                assert output_file.exists()
-
-                # Read the content and verify
-                content = output_file.read_text()
-                assert "# Repository:" in content
-                assert "test.py" in content
-
-            # Test with various parameters
+        # Patch gitignore parser
+        with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
+            # Test stdout output
             with mock.patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
+                generate_prompt(Path(tempdir), exclude_patterns=[], include_patterns=[])
+                stdout_prompt = mock_stdout.getvalue()
+                assert "included.py" in stdout_prompt
+                assert "# Python file for testing" in stdout_prompt
+                # The file tree section shouldn't include excluded.js
+                file_tree_section = stdout_prompt.split("## File Tree Structure")[1].split(
+                    "## File Contents"
+                )[0]
+                assert "excluded.js" not in file_tree_section
+
+            # Test file output
+            output_file = temp_path / "output.md"
+            file_handle = output_file.open("w", encoding="utf-8")
+
+            def file_writer(text: str) -> None:
+                file_handle.write(text)
+
+            try:
                 generate_prompt(
                     Path(tempdir),
-                    exclude_patterns=["*.md"],
+                    exclude_patterns=["*.js"],
                     include_patterns=["*.py"],
-                    respect_gitignore=False,
+                    output_stream=file_writer,
                 )
-                prompt = mock_stdout.getvalue()
-                assert "test.py" in prompt
+            finally:
+                file_handle.close()
+
+            prompt_content = output_file.read_text()
+            file_tree_section = prompt_content.split("## File Tree Structure")[1].split(
+                "## File Contents"
+            )[0]
+            assert "included.py" in file_tree_section
+            assert "excluded.js" not in file_tree_section
+
+            # Test with explicit exclude
+            output_file2 = temp_path / "output2.md"
+            file_handle2 = output_file2.open("w", encoding="utf-8")
+
+            def file_writer2(text: str) -> None:
+                file_handle2.write(text)
+
+            try:
+                generate_prompt(
+                    Path(tempdir),
+                    exclude_patterns=["included.py"],
+                    include_patterns=[],
+                    output_stream=file_writer2,
+                )
+            finally:
+                file_handle2.close()
+
+            prompt_content2 = output_file2.read_text()
+            file_tree_section = prompt_content2.split("## File Tree Structure")[1].split(
+                "## File Contents"
+            )[0]
+            assert "included.py" not in file_tree_section
+            assert "excluded.js" not in file_tree_section  # Still respects gitignore
 
 
 def test_get_gitignore_matcher() -> None:
@@ -294,13 +336,22 @@ def test_generate_prompt() -> None:
         # Patch the gitignore parser
         with mock.patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                # Generate prompt to file
-                generate_prompt(
-                    Path(temp_dir),
-                    exclude_patterns=[],
-                    include_patterns=[],
-                    output_file=output_file,
-                )
+                # Create file output stream
+                file_handle = output_file.open("w", encoding="utf-8")
+
+                def file_writer(text: str) -> None:
+                    file_handle.write(text)
+
+                try:
+                    # Generate prompt to file
+                    generate_prompt(
+                        Path(temp_dir),
+                        exclude_patterns=[],
+                        include_patterns=[],
+                        output_stream=file_writer,
+                    )
+                finally:
+                    file_handle.close()
 
                 # Check output file content
                 assert output_file.exists()

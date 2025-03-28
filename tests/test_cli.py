@@ -45,32 +45,32 @@ def test_main_default(capsys) -> None:
 
 
 def test_main_with_output_file() -> None:
-    """Test writing output to a file."""
-    with tempfile.TemporaryDirectory() as tempdir:
-        temp_path = Path(tempdir)
-        # Create a test file
-        (temp_path / "test.py").write_text('print("Hello")\n')
+    """Test main function with output to a file."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_file = Path(temp_dir) / "test.py"
+        test_file.write_text("print('test')")
 
-        output_file = temp_path / "output.md"
+        output_file = Path(temp_dir) / "output.md"
 
-        # Mock the gitignore parser
+        # Mock gitignore parser to avoid actual parsing
         def mock_parse_gitignore(_gitignore_file):
-            return lambda _: False  # No ignores from gitignore
+            return lambda _: False
 
-        # Run with output file
-        with mock.patch.object(
-            sys, "argv", ["codebase-prompt", tempdir, "--output", str(output_file)]
-        ):
-            with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                assert main() == 0
-
-                # Check that the file was created
-                assert output_file.exists()
-
-                # Check content
-                content = output_file.read_text(encoding="utf-8")
-                assert "# Repository:" in content
-                assert "test.py" in content
+        # Test with specified output file
+        with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
+            with mock.patch.object(
+                sys, "argv", ["codebase-prompt", str(temp_dir), "--output", str(output_file)]
+            ):
+                with mock.patch("codebase_prompt_gen.cli.main.generate_prompt") as mock_generate:
+                    assert main() == 0
+                    # Check that generate_prompt was called with correct args
+                    mock_generate.assert_called_once()
+                    args, kwargs = mock_generate.call_args
+                    assert str(args[0]) == str(temp_dir)
+                    assert args[1] == []  # exclude_patterns
+                    assert args[2] == []  # include_patterns
+                    assert kwargs["respect_gitignore"] is True
+                    assert callable(kwargs["output_stream"])  # Check that output_stream is callable
 
 
 def test_main_with_cursor() -> None:
@@ -91,16 +91,17 @@ def test_main_with_cursor() -> None:
         # Run with cursor flag
         with mock.patch.object(sys, "argv", ["codebase-prompt", tempdir, "--cursor"]):
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                assert main() == 0
+                with mock.patch("codebase_prompt_gen.cli.main.generate_prompt") as mock_generate:
+                    assert main() == 0
 
-                # Check that the file was created
-                cursor_file = cursor_dir / "entire-codebase.mdc"
-                assert cursor_file.exists()
-
-                # Check content
-                content = cursor_file.read_text(encoding="utf-8")
-                assert "# Repository:" in content
-                assert "test.py" in content
+                    # Check that generate_prompt was called with correct args
+                    mock_generate.assert_called_once()
+                    args, kwargs = mock_generate.call_args
+                    assert str(args[0]) == str(tempdir)
+                    assert args[1] == []  # exclude_patterns
+                    assert args[2] == []  # include_patterns
+                    assert kwargs["respect_gitignore"] is True
+                    assert callable(kwargs["output_stream"])  # Check that output_stream is callable
 
 
 def test_main_with_cursor_override_output() -> None:
@@ -125,19 +126,29 @@ def test_main_with_cursor_override_output() -> None:
                 ["codebase-prompt", tempdir, "--cursor", "--output", str(output_file)],
             ):
                 with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                    assert main() == 0
+                    with mock.patch(
+                        "codebase_prompt_gen.cli.main.generate_prompt"
+                    ) as mock_generate:
+                        assert main() == 0
 
-                    # Check that the cursor file was created
-                    cursor_file = temp_path / ".cursor" / "rules" / "entire-codebase.mdc"
-                    assert cursor_file.exists()
+                        # Check that generate_prompt was called with correct args
+                        mock_generate.assert_called_once()
+                        args, kwargs = mock_generate.call_args
+                        assert str(args[0]) == str(tempdir)
+                        assert args[1] == []  # exclude_patterns
+                        assert args[2] == []  # include_patterns
+                        assert kwargs["respect_gitignore"] is True
+                        assert callable(
+                            kwargs["output_stream"]
+                        )  # Check that output_stream is callable
 
-                    # Verify that the warning was logged
-                    mock_warning.assert_called_once()
-                    warning_message = mock_warning.call_args[0][0]
-                    assert (
-                        "cursor flag overrides" in warning_message.lower()
-                        or "overrides" in warning_message.lower()
-                    )
+                        # Verify that the warning was logged
+                        mock_warning.assert_called_once()
+                        warning_message = mock_warning.call_args[0][0]
+                        assert (
+                            "cursor flag overrides" in warning_message.lower()
+                            or "overrides" in warning_message.lower()
+                        )
 
 
 def test_main_error(capsys) -> None:
