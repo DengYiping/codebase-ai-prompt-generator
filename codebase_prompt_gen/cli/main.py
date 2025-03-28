@@ -53,13 +53,14 @@ def main() -> Optional[int]:
     args = parser.parse_args()
 
     if args.version:
+        print(f"Codebase AI Prompt Generator v{__version__}")
         return 0
 
     # Handle cursor output path
     output_file = args.output
     if args.cursor:
         if args.output:
-            pass
+            sys.stderr.write("Warning: --cursor flag overrides --output flag\n")
 
         # Get the absolute path to the repository
         repo_path = Path(args.repo_path).resolve()
@@ -81,8 +82,13 @@ def main() -> Optional[int]:
         )
         if not args.output and not args.cursor:
             print(output)
-    except (OSError, ValueError, FileNotFoundError):
+    except (OSError, ValueError, FileNotFoundError) as e:
+        sys.stderr.write(f"Error: {str(e)}\n")
         logging.exception("Error generating prompt!")
+        return 1
+    except Exception as e:
+        sys.stderr.write(f"Error: {str(e)}\n")
+        logging.exception("Unexpected error generating prompt!")
         return 1
     return 0
 
