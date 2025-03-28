@@ -37,7 +37,7 @@ def test_read_gitignore_file() -> None:
 
     # Test with non-existent file
     patterns = read_gitignore_file("/path/that/does/not/exist")
-    assert patterns == []
+    assert not patterns
 
 
 def test_gitignore_to_pattern() -> None:
@@ -82,12 +82,12 @@ def test_get_global_gitignore_patterns() -> None:
 
     with mock.patch("subprocess.run", return_value=mock_result):
         patterns = get_global_gitignore_patterns()
-        assert patterns == []
+        assert not patterns
 
     # Test with a subprocess error
     with mock.patch("subprocess.run", side_effect=subprocess.SubprocessError):
         patterns = get_global_gitignore_patterns()
-        assert patterns == []
+        assert not patterns
 
 
 def test_generate_file_tree() -> None:

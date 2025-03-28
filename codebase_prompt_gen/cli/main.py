@@ -7,6 +7,8 @@ from typing import Optional
 
 from codebase_prompt_gen.core import generate_prompt
 
+# Version information
+__version__ = "0.1.0"
 
 def main() -> Optional[int]:
     """Main entry point for the CLI."""
@@ -46,13 +48,14 @@ def main() -> Optional[int]:
     args = parser.parse_args()
 
     if args.version:
+        print(f"Codebase AI Prompt Generator v{__version__}")
         return 0
 
     # Handle cursor output path
     output_file = args.output
     if args.cursor:
         if args.output:
-            pass
+            print("Warning: --cursor flag overrides --output flag", file=sys.stderr)
 
         # Get the absolute path to the repository
         repo_path = os.path.abspath(args.repo_path)
@@ -65,7 +68,7 @@ def main() -> Optional[int]:
         output_file = os.path.join(cursor_dir, "entire-codebase.mdc")
 
     try:
-        generate_prompt(
+        prompt = generate_prompt(
             args.repo_path,
             args.exclude,
             args.include,
@@ -73,9 +76,11 @@ def main() -> Optional[int]:
             respect_gitignore=not args.no_gitignore,
         )
         if not args.output and not args.cursor:
-            pass
+            # Print to stdout if no output file is specified
+            print(prompt)
         return 0
-    except Exception:
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
 
