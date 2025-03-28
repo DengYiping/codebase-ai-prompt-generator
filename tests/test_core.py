@@ -177,6 +177,7 @@ def test_get_gitignore_matcher() -> None:
     def mock_parse_gitignore(_):
         def matcher(path):
             return path.endswith(".txt") or path.startswith("test/")
+
         return matcher
 
     with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
@@ -210,8 +211,10 @@ def test_get_gitignore_matcher_nonexistent() -> None:
 
 def mock_parse_gitignore(_gitignore_file):
     """Mock for parse_gitignore."""
+
     def matcher(path):
         return "excluded" in path
+
     return matcher
 
 
@@ -230,7 +233,7 @@ def test_generate_file_tree() -> None:
         excluded_file.write_text("excluded content")
 
         # Patch the gitignore parser
-        with mock.patch('codebase_prompt_gen.core.parse_gitignore', mock_parse_gitignore):
+        with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
             # Test with exclude patterns
             file_tree, files_content = generate_file_tree(
                 temp_dir, exclude_patterns=["excluded.txt"]
@@ -246,9 +249,7 @@ def test_generate_file_tree() -> None:
             assert "excluded.txt" not in paths
 
             # Test with include patterns
-            file_tree, files_content = generate_file_tree(
-                temp_dir, include_patterns=["included*"]
-            )
+            file_tree, files_content = generate_file_tree(temp_dir, include_patterns=["included*"])
 
             # Check file tree
             assert "📄 included.txt" in file_tree
@@ -269,11 +270,9 @@ def test_generate_prompt() -> None:
         output_file = temp_path / "output.md"
 
         # Patch the gitignore parser
-        with mock.patch('codebase_prompt_gen.core.parse_gitignore', mock_parse_gitignore):
+        with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
             # Generate prompt
-            prompt = generate_prompt(
-                temp_dir, output_file=output_file
-            )
+            prompt = generate_prompt(temp_dir, output_file=output_file)
 
             # Check prompt content
             assert "# Repository:" in prompt

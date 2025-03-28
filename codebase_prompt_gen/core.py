@@ -48,6 +48,7 @@ def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
             else:
                 # If already relative, use it directly
                 return matcher(file_path)
+
     except Exception as e:
         logging.warning("Error parsing gitignore file %s: %s", gitignore_path, e)
         # Return a function that always returns False (doesn't ignore anything)
