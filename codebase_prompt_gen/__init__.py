@@ -1,4 +1,5 @@
-"""Codebase AI Prompt Generator.
+"""
+Codebase AI Prompt Generator.
 
 A tool to scan Git repositories and generate comprehensive prompts for AI models.
 """

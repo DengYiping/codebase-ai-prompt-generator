@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Prepare a new release of codebase-ai-prompt-generator.
+"""
+Prepare a new release of codebase-ai-prompt-generator.
 
 This script:
 1. Updates the version in codebase_prompt_gen/__init__.py

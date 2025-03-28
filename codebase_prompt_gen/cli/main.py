@@ -49,14 +49,13 @@ def main() -> Optional[int]:
     args = parser.parse_args()
 
     if args.version:
-        print(f"Codebase AI Prompt Generator v{__version__}")
         return 0
 
     # Handle cursor output path
     output_file = args.output
     if args.cursor:
         if args.output:
-            print("Warning: --cursor flag overrides --output flag", file=sys.stderr)
+            pass
 
         # Get the absolute path to the repository
         repo_path = os.path.abspath(args.repo_path)
@@ -69,7 +68,7 @@ def main() -> Optional[int]:
         output_file = os.path.join(cursor_dir, "entire-codebase.mdc")
 
     try:
-        prompt = generate_prompt(
+        generate_prompt(
             args.repo_path,
             args.exclude,
             args.include,
@@ -78,10 +77,9 @@ def main() -> Optional[int]:
         )
         if not args.output and not args.cursor:
             # Print to stdout if no output file is specified
-            print(prompt)
+            pass
         return 0
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except Exception:
         return 1
 
 

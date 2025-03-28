@@ -10,7 +10,8 @@ ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
 
 
 def read_gitignore_file(file_path):
-    """Read a .gitignore file and return a list of patterns.
+    """
+    Read a .gitignore file and return a list of patterns.
 
     Args:
         file_path: Path to the .gitignore file
@@ -35,7 +36,8 @@ def read_gitignore_file(file_path):
 
 
 def get_global_gitignore_patterns():
-    """Get global gitignore patterns.
+    """
+    Get global gitignore patterns.
 
     Returns:
         List of global gitignore patterns
@@ -61,7 +63,8 @@ def get_global_gitignore_patterns():
 
 
 def gitignore_to_pattern(gitignore_pattern):
-    """Convert a gitignore pattern to a glob pattern.
+    """
+    Convert a gitignore pattern to a glob pattern.
 
     Args:
         gitignore_pattern: A pattern from a .gitignore file
@@ -93,7 +96,8 @@ def generate_file_tree(
     include_patterns=None,
     respect_gitignore=True,
 ) -> tuple[str, str]:
-    """Generate a file tree structure for a given directory.
+    """
+    Generate a file tree structure for a given directory.
 
     Args:
         root_dir: The root directory to scan
@@ -204,7 +208,8 @@ def generate_prompt(
     output_file=None,
     respect_gitignore=True,
 ) -> str:
-    """Generate a prompt for AI models containing the file tree and file contents.
+    """
+    Generate a prompt for AI models containing the file tree and file contents.
 
     Args:
         repo_path: Path to the Git repository

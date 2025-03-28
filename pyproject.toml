@@ -52,3 +52,18 @@ line_length = 100
 [[tool.uv.index]]
 url = "https://private.hubteam.com/pypi/simple/"
 default = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["E", "F", "B", "I", "W", "C90", "N", "D", "UP", "YTT", "ANN", "S", "BLE", "FBT", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "RUF", "PLC", "PLE", "PLR", "PLW"]
+ignore = ["D203", "D212", "ANN101", "ANN102", "ANN401"]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S101", "ANN", "D"]
+
+[tool.ruff.isort]
+known-first-party = ["codebase_prompt_gen"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
