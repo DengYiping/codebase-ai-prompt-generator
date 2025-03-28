@@ -5,11 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from codebase_prompt_gen.core import (
-    generate_file_tree,
-    generate_prompt,
-    get_gitignore_matcher,
-)
+from codebase_prompt_gen.core import generate_file_tree, generate_prompt, get_gitignore_matcher
 
 
 def test_generate_file_tree_original() -> None:

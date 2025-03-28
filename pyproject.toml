@@ -170,6 +170,7 @@ docstring-code-format = true # Format code examples in docstrings
 
 [dependency-groups]
 dev = [
+    "black==23.11.0",
     "coverage>=7.7.1",
     "hs-pylint-runner>=1.0.92",
     "pytest>=8.3.5",
