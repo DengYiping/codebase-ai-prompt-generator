@@ -1,12 +1,12 @@
 """Tests for CLI functionality."""
 
+import io
+import logging
 import os
 import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
-import logging
-import io
 
 from codebase_prompt_gen.cli.main import main
 
@@ -130,11 +130,14 @@ def test_main_with_cursor_override_output() -> None:
                     # Check that the cursor file was created
                     cursor_file = temp_path / ".cursor" / "rules" / "entire-codebase.mdc"
                     assert cursor_file.exists()
-                    
+
                     # Verify that the warning was logged
                     mock_warning.assert_called_once()
                     warning_message = mock_warning.call_args[0][0]
-                    assert "cursor flag overrides" in warning_message.lower() or "overrides" in warning_message.lower()
+                    assert (
+                        "cursor flag overrides" in warning_message.lower()
+                        or "overrides" in warning_message.lower()
+                    )
 
 
 def test_main_error(capsys) -> None:

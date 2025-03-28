@@ -1,10 +1,10 @@
 """Tests for core functionality."""
 
 import fnmatch
+import io
 import tempfile
 from pathlib import Path
 from unittest import mock
-import io
 
 from codebase_prompt_gen.core import generate_file_tree, generate_prompt, get_gitignore_matcher
 
@@ -58,9 +58,7 @@ def test_generate_file_tree_original() -> None:
         with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
             # Test without any custom patterns
             file_tree, files_content = generate_file_tree(
-                Path(tempdir), 
-                exclude_patterns=[], 
-                include_patterns=[]
+                Path(tempdir), exclude_patterns=[], include_patterns=[]
             )
 
             # Check file tree structure
@@ -83,17 +81,13 @@ def test_generate_file_tree_original() -> None:
 
             # Test with custom exclude patterns
             file_tree, files_content = generate_file_tree(
-                Path(tempdir), 
-                exclude_patterns=["*.md"],
-                include_patterns=[]
+                Path(tempdir), exclude_patterns=["*.md"], include_patterns=[]
             )
             assert not any("README.md" in item for item in file_tree)
 
             # Test with custom include patterns
             file_tree, files_content = generate_file_tree(
-                Path(tempdir), 
-                exclude_patterns=[],
-                include_patterns=["*.py"]
+                Path(tempdir), exclude_patterns=[], include_patterns=["*.py"]
             )
             assert any("main.py" in item for item in file_tree)
             assert not any("README.md" in item for item in file_tree)
@@ -103,18 +97,13 @@ def test_generate_file_tree_original() -> None:
 
             # With respect_gitignore=True (default), the log file should be excluded
             file_tree, _ = generate_file_tree(
-                Path(tempdir),
-                exclude_patterns=[],
-                include_patterns=[]
+                Path(tempdir), exclude_patterns=[], include_patterns=[]
             )
             assert not any("test.log" in item for item in file_tree)
 
             # With respect_gitignore=False, the log file should be included
             file_tree, _ = generate_file_tree(
-                Path(tempdir), 
-                respect_gitignore=False,
-                exclude_patterns=[],
-                include_patterns=[]
+                Path(tempdir), respect_gitignore=False, exclude_patterns=[], include_patterns=[]
             )
             assert any("test.log" in item for item in file_tree)
 
@@ -133,9 +122,7 @@ def test_always_exclude_git() -> None:
         with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
             # Try to include .git explicitly
             file_tree, _ = generate_file_tree(
-                Path(tempdir), 
-                exclude_patterns=[],
-                include_patterns=[".git", ".git/**"]
+                Path(tempdir), exclude_patterns=[], include_patterns=[".git", ".git/**"]
             )
 
             # Verify .git is still excluded
@@ -159,15 +146,11 @@ def test_generate_prompt_original() -> None:
         with mock.patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
                 # Test with output to stdout
-                generate_prompt(
-                    Path(tempdir),
-                    exclude_patterns=[],
-                    include_patterns=[]
-                )
-                
+                generate_prompt(Path(tempdir), exclude_patterns=[], include_patterns=[])
+
                 # Get the captured output
                 prompt = mock_stdout.getvalue()
-                
+
                 # Check prompt content
                 assert "# Repository:" in prompt
                 assert "## File Tree Structure" in prompt
@@ -177,10 +160,7 @@ def test_generate_prompt_original() -> None:
                 # Test with output to file
                 output_file = temp_path / "output.md"
                 generate_prompt(
-                    Path(tempdir),
-                    exclude_patterns=[],
-                    include_patterns=[],
-                    output_file=output_file
+                    Path(tempdir), exclude_patterns=[], include_patterns=[], output_file=output_file
                 )
 
                 # Verify file was created
@@ -276,9 +256,7 @@ def test_generate_file_tree() -> None:
         with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
             # Test with exclude patterns
             file_tree, files_content = generate_file_tree(
-                Path(temp_dir), 
-                exclude_patterns=["excluded.txt"],
-                include_patterns=[]
+                Path(temp_dir), exclude_patterns=["excluded.txt"], include_patterns=[]
             )
 
             # Check file tree
@@ -292,9 +270,7 @@ def test_generate_file_tree() -> None:
 
             # Test with include patterns
             file_tree, files_content = generate_file_tree(
-                Path(temp_dir), 
-                exclude_patterns=[],
-                include_patterns=["included*"]
+                Path(temp_dir), exclude_patterns=[], include_patterns=["included*"]
             )
 
             # Check file tree
@@ -323,7 +299,7 @@ def test_generate_prompt() -> None:
                     Path(temp_dir),
                     exclude_patterns=[],
                     include_patterns=[],
-                    output_file=output_file
+                    output_file=output_file,
                 )
 
                 # Check output file content
@@ -333,12 +309,8 @@ def test_generate_prompt() -> None:
                 assert "test.txt" in content
 
                 # Generate prompt to stdout
-                generate_prompt(
-                    Path(temp_dir),
-                    exclude_patterns=[],
-                    include_patterns=[]
-                )
-                
+                generate_prompt(Path(temp_dir), exclude_patterns=[], include_patterns=[])
+
                 # Get captured output
                 prompt = mock_stdout.getvalue()
                 assert "# Repository:" in prompt
