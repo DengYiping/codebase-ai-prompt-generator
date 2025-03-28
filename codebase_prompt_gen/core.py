@@ -76,9 +76,9 @@ def generate_file_tree(
         file path and a function to get its content.
     """
     file_tree: list[str] = []
-    files_to_read: list[
-        tuple[Path, Callable[[], str]]
-    ] = []  # Store (relative_path, content_getter)
+    files_to_read: list[tuple[Path, Callable[[], str]]] = (
+        []
+    )  # Store (relative_path, content_getter)
     combined_exclude = set(exclude_patterns) | ALWAYS_EXCLUDE
 
     # Set up gitignore matcher if requested
