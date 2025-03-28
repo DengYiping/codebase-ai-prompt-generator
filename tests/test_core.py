@@ -110,7 +110,7 @@ def test_always_exclude_git() -> None:
             f.write("# Git config\n")
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
@@ -131,7 +131,7 @@ def test_generate_prompt() -> None:
             f.write("print('Hello World')\n")
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):

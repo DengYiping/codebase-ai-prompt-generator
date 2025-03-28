@@ -24,7 +24,7 @@ def test_main_default(capsys) -> None:
             f.write('print("Hello")\n')
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         # Change to the temp directory and run the main function
@@ -51,7 +51,7 @@ def test_main_with_output_file() -> None:
         output_file = os.path.join(tempdir, "output.md")
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         # Run with output file
@@ -81,7 +81,7 @@ def test_main_with_cursor() -> None:
         os.makedirs(cursor_dir, exist_ok=True)
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         # Run with cursor flag
@@ -110,7 +110,7 @@ def test_main_with_cursor_override_output(capsys) -> None:
         output_file = os.path.join(tempdir, "output.md")
 
         # Mock the gitignore parser
-        def mock_parse_gitignore(gitignore_file):
+        def mock_parse_gitignore(_gitignore_file):
             return lambda path: False  # No ignores from gitignore
 
         # Run with both cursor and output flags

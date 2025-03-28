@@ -131,6 +131,8 @@ select = [
     "PTH",# flake8-use-pathlib
     "PL", # pylint
     "PT", # pytest
+    "RUF",# ruff specific rules
+    "TRY",# try statements
     # "T20", # Uncomment if you want to ban 'print'
 ]
 

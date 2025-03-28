@@ -97,7 +97,8 @@ def generate_file_tree(
     gitignore_matcher = None
     if respect_gitignore:
         local_gitignore_path = root_path / ".gitignore"
-        gitignore_matcher = get_gitignore_matcher(local_gitignore_path, root_path)
+        local_matcher = get_gitignore_matcher(local_gitignore_path, root_path)
+        gitignore_matcher = local_matcher
 
         # Try to get global gitignore matcher too
         try:
@@ -112,10 +113,10 @@ def generate_file_tree(
                 global_matcher = get_gitignore_matcher(global_gitignore_path, root_path)
 
                 # Combine both matchers
-                local_matcher = gitignore_matcher
-
-                def gitignore_matcher(path):
+                def combined_matcher(path):
                     return local_matcher(path) or global_matcher(path)
+
+                gitignore_matcher = combined_matcher
 
         except (subprocess.SubprocessError, FileNotFoundError) as e:
             # Git not installed or other error
