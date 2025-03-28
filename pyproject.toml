@@ -71,3 +71,9 @@ known-first-party = ["codebase_prompt_gen"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.11.2",
+]
