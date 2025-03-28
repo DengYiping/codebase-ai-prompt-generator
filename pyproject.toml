@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codebase-ai-prompt-generator"
-version = "0.1.0"
+version = "0.1.1"
 description = "Generate AI prompts from Git repositories with file tree structures and content"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "gitignore-parser>=0.1.11",
@@ -172,7 +174,6 @@ docstring-code-format = true # Format code examples in docstrings
 dev = [
     "black==23.11.0",
     "coverage>=7.7.1",
-    "hs-pylint-runner>=1.0.92",
     "pytest>=8.3.5",
     "ruff>=0.11.2",
 ]
