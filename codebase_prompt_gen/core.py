@@ -1,6 +1,7 @@
 import fnmatch  # Import fnmatch
 import logging
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -81,10 +82,12 @@ def generate_file_tree(
     combined_exclude = set(exclude_patterns) | ALWAYS_EXCLUDE
 
     # Set up gitignore matcher if requested
-    gitignore_matcher: Callable[[Path], bool] = lambda _: False
+    gitignore_matcher: Callable[[Path], bool] = lambda x: False
+
     if respect_gitignore:
         local_gitignore_path = root_dir / ".gitignore"
         local_matcher = get_gitignore_matcher(local_gitignore_path, root_dir)
+
         global_matcher: Callable[[Path], bool] = lambda _: False
 
         # Try to get global gitignore matcher too
@@ -134,8 +137,6 @@ def generate_file_tree(
             for pattern in combined_exclude
         )
         if is_explicitly_excluded:
-            # If a directory is excluded, skip its contents entirely by not recursing further implicitly (rglob handles this)
-            # If a file is excluded, just skip this item.
             if path.is_dir():
                 logging.debug(
                     "Excluding directory and its contents based on exclude patterns: %s", rel_path
@@ -152,8 +153,6 @@ def generate_file_tree(
         # Pass the absolute path to the matcher wrapper for robust matching
         if respect_gitignore and gitignore_matcher(path):
             logging.debug("Excluding path based on gitignore: %s", rel_path)
-            # Similar to above, if a directory is ignored, rglob might have already listed its contents.
-            # We filter them out individually when they come up in the loop.
             continue  # Skip this path
 
         # --- Inclusion logic ---
@@ -195,12 +194,12 @@ def build_file_content_getter(file_path: Path) -> Callable[[], str]:
             with absolute_path.open("r", encoding="utf-8", errors="replace") as f:
                 return f.read()
         except FileNotFoundError:
-            logging.error("File not found when trying to read content: %s", absolute_path)
+            logging.exception("File not found when trying to read content: %s", absolute_path)
             return "[Error: File not found]"
-        except Exception as e:
-            logging.error("Error reading file %s: %s", absolute_path, e)
+        except Exception:
+            logging.exception("Error reading file %s", absolute_path)
             # Return error message in content - useful for debugging in the prompt
-            return f"[Error reading file: {e}]"
+            return ""
 
     return get_content
 
@@ -233,12 +232,11 @@ def generate_prompt(
         repo_path_obj = Path(repo_path).resolve(strict=True)  # Ensure path exists
         repo_name = repo_path_obj.name
     except FileNotFoundError:
-        logging.error("Repository path not found: %s", repo_path)
+        logging.exception("Repository path not found: %s", repo_path)
         print(f"Error: Repository path not found: {repo_path}")
         return
-    except Exception as e:
-        logging.error("Error resolving repository path %s: %s", repo_path, e)
-        print(f"Error resolving repository path {repo_path}: {e}")
+    except Exception:
+        logging.exception("Error resolving repository path %s", repo_path)
         return
 
     logging.info("Generating file tree for %s", repo_path_obj)
@@ -264,7 +262,8 @@ def generate_prompt(
     prompt_header += "## File Contents\n\n"
 
     # --- Output Handling ---
-    writer: Callable[[str], int | None] = lambda _: 0
+    writer: Callable[[str], int | None] = lambda _: None
+
     output_stream = None
     try:
         if output_file:
@@ -275,43 +274,40 @@ def generate_prompt(
             logging.info("Writing prompt to file: %s", output_path)
         else:
             # Use print for stdout, handling potential encoding issues
-            import sys
 
             writer = lambda text: print(text, end="", flush=True, file=sys.stdout)
+
             logging.info("Printing prompt to standard output.")
 
         # Write header
-        _ = writer(prompt_header)
+        writer(prompt_header)
 
         # Write file contents incrementally
         if not files_content:
-            _ = writer("No file contents included based on criteria.\n")
+            writer("No file contents included based on criteria.\n")
 
         for file_path, content_getter in files_content:
             # Use the relative path for display
             relative_path_str = str(file_path)
-            _ = writer(f"### `{relative_path_str}`\n\n")
+            writer(f"### `{relative_path_str}`\n\n")
             # Determine language for markdown code block if possible (simple extension mapping)
             lang = file_path.suffix.lstrip(".") if file_path.suffix else ""
-            _ = writer(f"```{(lang)}\n")  # Add lang hint if available
+            writer(f"```{(lang)}\n")  # Add lang hint if available
             # Call the getter to read content only when needed
             try:
                 content = content_getter()
-                _ = writer(content)
-            except Exception as e:
+                writer(content)
+            except Exception:
                 # Should be caught by getter, but as a fallback
-                logging.error("Unexpected error getting content for %s: %s", file_path, e)
-                _ = writer(f"[Error retrieving content: {e}]")
-            _ = writer("\n```\n\n")
+                logging.exception("Unexpected error getting content for %s", file_path)
+            writer("\n```\n\n")
 
         logging.info("Prompt generation complete.")
 
-    except IOError as e:
-        logging.error("Error writing to output %s: %s", output_file or "stdout", e)
-        print(f"Error writing output: {e}")
-    except Exception as e:
-        logging.error("An unexpected error occurred during prompt generation: %s", e)
-        print(f"An unexpected error occurred: {e}")
+    except OSError:
+        logging.exception("Error writing to output %s", output_file or "stdout")
+    except Exception:
+        logging.exception("An unexpected error occurred during prompt generation: %s")
     finally:
         if output_stream:
             output_stream.close()

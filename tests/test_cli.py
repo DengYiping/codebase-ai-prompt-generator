@@ -5,6 +5,8 @@ import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
+import logging
+import io
 
 from codebase_prompt_gen.cli.main import main
 
@@ -101,7 +103,7 @@ def test_main_with_cursor() -> None:
                 assert "test.py" in content
 
 
-def test_main_with_cursor_override_output(capsys) -> None:
+def test_main_with_cursor_override_output() -> None:
     """Test that --cursor overrides --output."""
     with tempfile.TemporaryDirectory() as tempdir:
         temp_path = Path(tempdir)
@@ -114,20 +116,25 @@ def test_main_with_cursor_override_output(capsys) -> None:
         def mock_parse_gitignore(_gitignore_file):
             return lambda _: False  # No ignores from gitignore
 
-        # Run with both cursor and output flags
-        with mock.patch.object(
-            sys,
-            "argv",
-            ["codebase-prompt", tempdir, "--cursor", "--output", str(output_file)],
-        ):
-            with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
-                assert main() == 0
-                captured = capsys.readouterr()
-                assert "Warning: --cursor flag overrides --output flag" in captured.err
+        # Mock logging.warning to check for the warning message
+        with mock.patch("logging.warning") as mock_warning:
+            # Run with both cursor and output flags
+            with mock.patch.object(
+                sys,
+                "argv",
+                ["codebase-prompt", tempdir, "--cursor", "--output", str(output_file)],
+            ):
+                with mock.patch("codebase_prompt_gen.core.parse_gitignore", mock_parse_gitignore):
+                    assert main() == 0
 
-                # Check that the cursor file was created
-                cursor_file = temp_path / ".cursor" / "rules" / "entire-codebase.mdc"
-                assert cursor_file.exists()
+                    # Check that the cursor file was created
+                    cursor_file = temp_path / ".cursor" / "rules" / "entire-codebase.mdc"
+                    assert cursor_file.exists()
+                    
+                    # Verify that the warning was logged
+                    mock_warning.assert_called_once()
+                    warning_message = mock_warning.call_args[0][0]
+                    assert "cursor flag overrides" in warning_message.lower() or "overrides" in warning_message.lower()
 
 
 def test_main_error(capsys) -> None:

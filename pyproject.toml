@@ -24,7 +24,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "gitignore-parser>=0.1.11",
@@ -151,6 +150,7 @@ select = [
 # PLC0415: Import outside toplevel (sometimes needed for conditional imports)
 # PLR2004: Magic value used in comparison (can be overly strict)
 ignore = [
+    "E731"
     # Add specific PL rules to ignore below if they are too noisy:
     # "PLR0913", # Example: Ignore 'too many arguments'
     # "PLR0915", # Example: Ignore 'too many statements'
