@@ -83,11 +83,11 @@ def main() -> Optional[int]:
         if not args.output and not args.cursor:
             print(output)
     except (OSError, ValueError, FileNotFoundError) as e:
-        sys.stderr.write(f"Error: {str(e)}\n")
+        sys.stderr.write(f"Error: {e!s}\n")
         logging.exception("Error generating prompt!")
         return 1
     except Exception as e:
-        sys.stderr.write(f"Error: {str(e)}\n")
+        sys.stderr.write(f"Error: {e!s}\n")
         logging.exception("Unexpected error generating prompt!")
         return 1
     return 0
