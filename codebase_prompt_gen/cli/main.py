@@ -4,7 +4,6 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 from codebase_prompt_gen.core import generate_prompt
 
@@ -15,7 +14,7 @@ version_info = tuple(int(part) for part in __version__.split("."))
 __all__ = ["__version__", "version_info"]
 
 
-def main() -> Optional[int]:
+def main() -> int | None:
     """Execute the main CLI functionality."""
     parser = argparse.ArgumentParser(description="Generate AI prompts from Git repositories")
     parser.add_argument(
@@ -57,7 +56,7 @@ def main() -> Optional[int]:
         return 0
 
     # Handle cursor output path
-    output_file = args.output
+    output_file = Path(args.output)
     if args.cursor:
         if args.output:
             sys.stderr.write("Warning: --cursor flag overrides --output flag\n")
@@ -74,9 +73,9 @@ def main() -> Optional[int]:
 
     try:
         output = generate_prompt(
-            args.repo_path,
-            args.exclude,
-            args.include,
+            Path(args.repo_path),
+            args.exclude or [],
+            args.include or [],
             output_file,
             respect_gitignore=not args.no_gitignore,
         )
