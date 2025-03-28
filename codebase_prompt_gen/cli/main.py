@@ -10,6 +10,7 @@ from codebase_prompt_gen.core import generate_prompt
 # Version information
 __version__ = "0.1.0"
 
+
 def main() -> Optional[int]:
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(description="Generate AI prompts from Git repositories")
