@@ -6,90 +6,54 @@ import logging
 import subprocess
 from pathlib import Path
 
+from gitignore_parser import parse_gitignore
+
 # Set of patterns that should always be excluded
 ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
 
 
-def read_gitignore_file(file_path: str | Path) -> list[str]:
+def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
     """
-    Read a .gitignore file and return a list of patterns.
+    Get a matcher function for a gitignore file.
 
     Args:
-        file_path: Path to the .gitignore file
+        gitignore_path: Path to the .gitignore file
+        root_path: Root path for the repository
 
     Returns:
-        List of gitignore patterns
-
+        A function that returns True if the path matches any gitignore pattern
     """
-    patterns = []
-    path = Path(file_path)
-    if path.exists():
-        try:
-            with path.open(encoding="utf-8") as f:
-                for line in f:
-                    line_content = line.strip()
-                    # Skip empty lines and comments
-                    if line_content and not line_content.startswith("#"):
-                        patterns.append(line_content)
-        except OSError as e:
-            # Log the error but continue without failing
-            logging.warning("Error reading gitignore file %s: %s", file_path, e)
-    return patterns
+    if not gitignore_path.exists():
+        # Return a function that always returns False (doesn't ignore anything)
+        return lambda path: False
 
-
-def get_global_gitignore_patterns() -> list[str]:
-    """
-    Get global gitignore patterns.
-
-    Returns:
-        List of global gitignore patterns
-
-    """
     try:
-        # Try to get the global gitignore file path
-        result = subprocess.run(
-            ["git", "config", "--global", "--get", "core.excludesfile"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        # Create a matcher from the gitignore file
+        matcher = parse_gitignore(gitignore_path)
 
-        if result.returncode == 0 and result.stdout.strip():
-            global_gitignore_path = Path(result.stdout.strip()).expanduser()
-            return read_gitignore_file(global_gitignore_path)
-    except (subprocess.SubprocessError, FileNotFoundError) as e:
-        # Git not installed or other error
-        logging.debug("Error getting global gitignore: %s", e)
+        # Wrap the matcher to handle both absolute and relative paths
+        def path_matcher(file_path: str) -> bool:
+            # Convert to Path object for easier manipulation
+            path_obj = Path(file_path)
 
-    return []
+            # If the path is absolute, try to make it relative to the root path
+            if path_obj.is_absolute():
+                try:
+                    rel_path = path_obj.relative_to(root_path)
+                    return matcher(str(rel_path))
+                except ValueError:
+                    # If the path is not relative to root_path, it's outside the repo
+                    # and should not be matched by the gitignore
+                    return False
+            else:
+                # If already relative, use it directly
+                return matcher(file_path)
 
-
-def gitignore_to_pattern(gitignore_pattern: str) -> str:
-    """
-    Convert a gitignore pattern to a glob pattern.
-
-    Args:
-        gitignore_pattern: A pattern from a .gitignore file
-
-    Returns:
-        A glob pattern compatible with fnmatch
-
-    """
-    # Handle negation (patterns that start with !)
-    if gitignore_pattern.startswith("!"):
-        # Negation is not directly supported in fnmatch
-        # Just return the pattern without the negation for now
-        gitignore_pattern = gitignore_pattern[1:]
-
-    # Handle directory-specific patterns (ending with /)
-    if gitignore_pattern.endswith("/"):
-        gitignore_pattern = gitignore_pattern[:-1]
-
-    # Convert ** to match any number of directories
-    if "**" in gitignore_pattern:
-        gitignore_pattern = gitignore_pattern.replace("**/", "**/").replace("/**", "/**")
-
-    return gitignore_pattern
+        return path_matcher
+    except Exception as e:
+        logging.warning("Error parsing gitignore file %s: %s", gitignore_path, e)
+        # Return a function that always returns False (doesn't ignore anything)
+        return lambda path: False
 
 
 def generate_file_tree(
@@ -129,22 +93,33 @@ def generate_file_tree(
             if pattern not in exclude_patterns:
                 exclude_patterns.append(pattern)
 
-    # Add gitignore patterns if requested
+    # Set up gitignore matcher if requested
+    gitignore_matcher = None
     if respect_gitignore:
-        # Add global gitignore patterns
-        global_patterns = get_global_gitignore_patterns()
-        for pattern in global_patterns:
-            glob_pattern = gitignore_to_pattern(pattern)
-            if glob_pattern and glob_pattern not in exclude_patterns:
-                exclude_patterns.append(glob_pattern)
-
-        # Add local gitignore patterns
         local_gitignore_path = root_path / ".gitignore"
-        local_patterns = read_gitignore_file(local_gitignore_path)
-        for pattern in local_patterns:
-            glob_pattern = gitignore_to_pattern(pattern)
-            if glob_pattern and glob_pattern not in exclude_patterns:
-                exclude_patterns.append(glob_pattern)
+        gitignore_matcher = get_gitignore_matcher(local_gitignore_path, root_path)
+
+        # Try to get global gitignore matcher too
+        try:
+            result = subprocess.run(
+                ["git", "config", "--global", "--get", "core.excludesfile"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                global_gitignore_path = Path(result.stdout.strip()).expanduser()
+                global_matcher = get_gitignore_matcher(global_gitignore_path, root_path)
+
+                # Combine both matchers
+                local_matcher = gitignore_matcher
+
+                def gitignore_matcher(path):
+                    return local_matcher(path) or global_matcher(path)
+
+        except (subprocess.SubprocessError, FileNotFoundError) as e:
+            # Git not installed or other error
+            logging.debug("Error getting global gitignore: %s", e)
 
     file_tree = []
     files_content = []
@@ -160,7 +135,11 @@ def generate_file_tree(
         rel_path = path.relative_to(root_path)
         rel_path_str = str(rel_path)
 
-        # Check if path should be excluded
+        # Check if path should be excluded by gitignore
+        if gitignore_matcher and gitignore_matcher(rel_path_str):
+            continue
+
+        # Check if path should be excluded by explicit patterns
         if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in exclude_patterns) or any(
             fnmatch.fnmatch(path.name, pattern) for pattern in exclude_patterns
         ):

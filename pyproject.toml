@@ -24,7 +24,9 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-dependencies = []
+dependencies = [
+    "gitignore-parser>=0.1.11",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/DengYiping/codebase-ai-prompt-generator"
@@ -54,26 +56,116 @@ url = "https://private.hubteam.com/pypi/simple/"
 default = true
 
 [tool.ruff]
+# Enable preview mode
+preview = true
+
+# Define the maximum line length. 88 is common (used by Black).
 line-length = 100
+
+# Specify the Python version(s) your code supports.
+# Ruff uses this to suggest compatible syntax upgrades and check for
+# version-specific issues. Adjust this to match your project!
+# Examples: "py38", "py39", "py310", "py311", "py312"
 target-version = "py38"
 
+# List of files and directories Ruff should exclude from checks.
+# Ruff has sensible defaults (like .git, .venv, venv, __pycache__),
+# but you can add project-specific exclusions here.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "*/migrations/*", # Often useful for Django/Flask migrations
+    "*/static/*",     # Static asset files
+    "docs/*",         # Documentation files
+]
+
+# Optional: Define where your source code lives.
+# If omitted, Ruff defaults to checking the current directory and subdirectories.
+# Use this if your code is structured differently, e.g., in a 'src' directory.
+# src = ["src", "tests"] # Example: Lint both 'src' and 'tests' directories
+
 [tool.ruff.lint]
-select = ["E", "F", "B", "I", "W", "C90", "N", "D", "UP", "YTT", "ANN", "S", "BLE", "FBT", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "RUF", "PLC", "PLE", "PLR", "PLW"]
-ignore = ["D203", "D212", "ANN401", "T201"]
+# Select the rule codes/prefixes to enable.
+# Start with a recommended baseline and add more as needed.
+#  E: pycodestyle Errors
+#  W: pycodestyle Warnings
+#  F: Pyflakes
+#  I: isort
+#  UP: pyupgrade
+#  B: flake8-bugbear
+#  A: flake8-builtins
+#  C4: flake8-comprehensions
+#  SIM: flake8-simplify
+#  PL: pylint rules
+#  T20: flake8-print
+#  PT: flake8-pytest-style
+select = [
+    "E",  # pycodestyle errors
+    "F",  # Pyflakes
+    "W",  # pycodestyle warnings
+    "I",  # isort
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+    "A",  # flake8-builtins
+    "C4", # flake8-comprehensions
+    "SIM",# flake8-simplify
+    "ARG",# flake8-unused-arguments
+    "PTH",# flake8-use-pathlib
+    "PL", # pylint
+    "PT", # pytest
+    # "T20", # Uncomment if you want to ban 'print'
+]
 
+# Ignore specific rule codes globally.
+# Add rules here that you find too noisy or don't agree with.
+# Pylint rules (PL) can be verbose, so you might add specific ones here.
+# Example common Pylint ignores:
+# PLR0913: Too many arguments
+# PLR0915: Too many statements
+# PLW0621: Redefined outer name (can be valid in list comprehensions, etc.)
+# PLC0415: Import outside toplevel (sometimes needed for conditional imports)
+# PLR2004: Magic value used in comparison (can be overly strict)
+ignore = [
+    # Add specific PL rules to ignore below if they are too noisy:
+    # "PLR0913", # Example: Ignore 'too many arguments'
+    # "PLR0915", # Example: Ignore 'too many statements'
+]
+
+# Allow autofix for all enabled rules (use with caution and review changes).
+# You can specify specific rule codes instead of "ALL".
+# fixable = ["ALL"]
+# Alternatively, specify rules that should *not* be autofixed.
+# unfixable = []
+
+# You can ignore specific rules for specific files or directories.
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "ANN", "D", "PTH", "PLR2004"]
-"codebase_prompt_gen/core.py" = ["S603", "S607", "C901", "PLR0912"]
-"scripts/prepare_release.py" = ["S603", "S607", "ANN", "PTH", "D"]
+"tests/*" = ["SIM117"]  # Example: Allow 'assert' and magic values in tests
+# "__init__.py" = ["F401"] # Allow unused imports in __init__.py
 
-[tool.ruff.lint.isort]
-known-first-party = ["codebase_prompt_gen"]
-
-[tool.ruff.lint.mccabe]
-max-complexity = 10
+[tool.ruff.format]
+docstring-code-format = true # Format code examples in docstrings
 
 [dependency-groups]
 dev = [
+    "hs-pylint-runner>=1.0.92",
     "pytest>=8.3.5",
     "ruff>=0.11.2",
 ]
