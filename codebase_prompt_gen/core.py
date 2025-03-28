@@ -1,9 +1,7 @@
-"""Core functionality for the Codebase AI Prompt Generator."""
-from __future__ import annotations
-
-import fnmatch
+import fnmatch  # Import fnmatch
 import logging
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 from gitignore_parser import parse_gitignore
@@ -12,7 +10,7 @@ from gitignore_parser import parse_gitignore
 ALWAYS_EXCLUDE = {".git", ".git/", ".git/**"}
 
 
-def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
+def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> Callable[[Path], bool]:
     """
     Get a matcher function for a gitignore file.
 
@@ -31,75 +29,63 @@ def get_gitignore_matcher(gitignore_path: Path, root_path: Path) -> callable:
     try:
         matcher = parse_gitignore(gitignore_path)
 
-        # Wrap the matcher to handle both absolute and relative paths
-        def path_matcher(file_path: str) -> bool:
-            # Convert to Path object for easier manipulation
-            path_obj = Path(file_path)
-
-            # If the path is absolute, try to make it relative to the root path
-            if path_obj.is_absolute():
-                try:
-                    rel_path = path_obj.relative_to(root_path)
-                    return matcher(str(rel_path))
-                except ValueError:
-                    # If the path is not relative to root_path, it's outside the repo
-                    # and should not be matched by the gitignore
-                    return False
-            else:
-                # If already relative, use it directly
-                return matcher(file_path)
+        # Wrap the matcher to handle both absolute and relative paths correctly
+        def path_matcher(file_path: Path) -> bool:
+            # Use absolute paths for reliable matching within the gitignore library context
+            try:
+                # Convert to Path object for easier manipulation if it's not already
+                abs_path = (
+                    file_path if file_path.is_absolute() else root_path.absolute() / file_path
+                )
+                # Make relative to the root_path where .gitignore is expected to apply
+                rel_path = abs_path.relative_to(root_path.absolute())
+                return matcher(str(rel_path)) or matcher(str(abs_path))
+            except ValueError:
+                return matcher(str(file_path))
+            except Exception as inner_e:
+                logging.debug("Error during gitignore matching for %s: %s", file_path, inner_e)
+                return False  # Treat errors as non-matches
 
     except Exception as e:
         logging.warning("Error parsing gitignore file %s: %s", gitignore_path, e)
-        # Return a function that always returns False (doesn't ignore anything)
         return lambda _: False
 
     return path_matcher
 
 
 def generate_file_tree(
-    root_dir: str | Path,
-    exclude_patterns: list[str] | None = None,
-    include_patterns: list[str] | None = None,
-    *,
+    root_dir: Path,
+    exclude_patterns: list[str],
+    include_patterns: list[str],
     respect_gitignore: bool = True,
-) -> tuple[list[str], list[dict[str, str]]]:
+) -> tuple[list[str], list[tuple[Path, Callable[[], str]]]]:
     """
-    Generate a file tree structure for a given directory.
+    Generate a file tree structure for a given directory, respecting includes/excludes.
 
     Args:
         root_dir: The root directory to scan
         exclude_patterns: List of glob patterns to exclude
-        include_patterns: List of glob patterns to include
+        include_patterns: List of glob patterns to include (files only)
         respect_gitignore: Whether to respect .gitignore files
 
     Returns:
         Tuple of (file_tree, files_content) where file_tree is a list of
-        formatted strings and files_content is a list of dictionaries with
-        path and content keys
-
+        formatted strings representing the directory structure, and
+        files_content is a list of tuples, each containing the relative
+        file path and a function to get its content.
     """
-    # Default exclude patterns
-    default_excludes = ["__pycache__", "*.pyc", "node_modules", ".DS_Store"]
-    root_path = Path(root_dir)
-
-    # Always include the .git folder in exclusions
-    if exclude_patterns is None:
-        exclude_patterns = default_excludes + list(ALWAYS_EXCLUDE)
-    else:
-        # Make a copy to avoid modifying the original list and ensure .git is excluded
-        exclude_patterns = exclude_patterns.copy()
-        # Add default exclusions for .git
-        for pattern in ALWAYS_EXCLUDE:
-            if pattern not in exclude_patterns:
-                exclude_patterns.append(pattern)
+    file_tree: list[str] = []
+    files_to_read: list[
+        tuple[Path, Callable[[], str]]
+    ] = []  # Store (relative_path, content_getter)
+    combined_exclude = set(exclude_patterns) | ALWAYS_EXCLUDE
 
     # Set up gitignore matcher if requested
-    gitignore_matcher = None
+    gitignore_matcher: Callable[[Path], bool] = lambda _: False
     if respect_gitignore:
-        local_gitignore_path = root_path / ".gitignore"
-        local_matcher = get_gitignore_matcher(local_gitignore_path, root_path)
-        gitignore_matcher = local_matcher
+        local_gitignore_path = root_dir / ".gitignore"
+        local_matcher = get_gitignore_matcher(local_gitignore_path, root_dir)
+        global_matcher: Callable[[Path], bool] = lambda _: False
 
         # Try to get global gitignore matcher too
         try:
@@ -108,98 +94,157 @@ def generate_file_tree(
                 capture_output=True,
                 text=True,
                 check=False,
+                encoding="utf-8",  # Explicitly set encoding
             )
-            if result.returncode == 0 and result.stdout.strip():
+            if result.returncode == 0 and result.stdout and result.stdout.strip():
                 global_gitignore_path = Path(result.stdout.strip()).expanduser()
-                global_matcher = get_gitignore_matcher(global_gitignore_path, root_path)
-
-                # Combine both matchers
-                def combined_matcher(path):
-                    return local_matcher(path) or global_matcher(path)
-
-                gitignore_matcher = combined_matcher
+                if global_gitignore_path.exists():
+                    global_matcher = get_gitignore_matcher(global_gitignore_path, root_dir)
+                else:
+                    logging.debug("Global gitignore file not found at: %s", global_gitignore_path)
 
         except (subprocess.SubprocessError, FileNotFoundError) as e:
             # Git not installed or other error
-            logging.debug("Error getting global gitignore: %s", e)
+            logging.debug("Could not get global gitignore: %s", e)
+        except Exception as e:
+            logging.warning("Unexpected error getting global gitignore: %s", e)
 
-    file_tree = []
-    files_content = []
+        def combined_matcher(path: Path) -> bool:
+            return local_matcher(path) or global_matcher(path)
 
-    # Get all files and directories
-    all_files = []
-    # Use Path.rglob instead of os.walk
-    for path in sorted(root_path.rglob("*")):
-        # Skip .git directory entirely
-        if ".git" in path.parts:
-            continue
+        gitignore_matcher = combined_matcher
 
-        rel_path = path.relative_to(root_path)
-        rel_path_str = str(rel_path)
-
-        # Check if path should be excluded by gitignore
-        if gitignore_matcher and gitignore_matcher(rel_path_str):
-            continue
-
-        # Check if path should be excluded by explicit patterns
-        if any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in exclude_patterns) or any(
-            fnmatch.fnmatch(path.name, pattern) for pattern in exclude_patterns
-        ):
-            continue
-
-        # Handle directories
-        if path.is_dir():
-            file_tree.append(f"📁 {rel_path_str}/")
-        # Handle files
-        elif path.is_file():
-            # Apply include patterns if specified
-            if (
-                include_patterns
-                and not any(fnmatch.fnmatch(path.name, pattern) for pattern in include_patterns)
-                and not any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in include_patterns)
-            ):
-                continue
-
-            file_tree.append(f"📄 {rel_path_str}")
-            all_files.append(rel_path_str)
-
-    # Get content of all files
-    for file_path in all_files:
-        abs_path = root_path / file_path
+    for path in sorted(root_dir.rglob("*")):
         try:
-            with abs_path.open(encoding="utf-8", errors="replace") as f:
-                content = f.read()
-                files_content.append({"path": file_path, "content": content})
-        except OSError as e:
-            files_content.append({"path": file_path, "content": f"[Error reading file: {e!s}]"})
+            rel_path = path.relative_to(root_dir)
+            rel_path_str = str(rel_path)
+        except ValueError:
+            # Should not happen with rglob starting from root_dir, but handle defensively
+            logging.warning("Path %s could not be made relative to %s", path, root_dir)
+            continue
 
-    return file_tree, files_content
+        # --- Exclusion checks ---
+
+        # 1. Check explicit exclude patterns and ALWAYS_EXCLUDE
+        # We check against the relative path string.
+        # Add '/' suffix check for directory patterns like 'node_modules/'
+        is_explicitly_excluded = any(
+            fnmatch.fnmatch(rel_path_str, pattern)
+            or (path.is_dir() and fnmatch.fnmatch(rel_path_str + "/", pattern))
+            for pattern in combined_exclude
+        )
+        if is_explicitly_excluded:
+            # If a directory is excluded, skip its contents entirely by not recursing further implicitly (rglob handles this)
+            # If a file is excluded, just skip this item.
+            if path.is_dir():
+                logging.debug(
+                    "Excluding directory and its contents based on exclude patterns: %s", rel_path
+                )
+                # To prevent rglob from descending into excluded directories,
+                # this check ideally happens before yielding, but rglob yields all paths first.
+                # We rely on filtering *after* rglob generates the path.
+                # A future optimization might involve os.walk for finer control.
+            else:
+                logging.debug("Excluding file based on exclude patterns: %s", rel_path)
+            continue  # Skip this path
+
+        # 2. Check gitignore patterns (if enabled)
+        # Pass the absolute path to the matcher wrapper for robust matching
+        if respect_gitignore and gitignore_matcher(path):
+            logging.debug("Excluding path based on gitignore: %s", rel_path)
+            # Similar to above, if a directory is ignored, rglob might have already listed its contents.
+            # We filter them out individually when they come up in the loop.
+            continue  # Skip this path
+
+        # --- Inclusion logic ---
+
+        # Handle directories: Add to tree if not excluded/ignored
+        if path.is_dir():
+            file_tree.append(f"📁 {rel_path}/")  # Add trailing slash for clarity
+            continue  # Handled directory, move to the next path
+
+        # Handle files: Check include patterns if they exist
+        elif path.is_file():
+            should_include_file = True  # Default to include
+            if include_patterns:
+                # If include_patterns are specified, the file MUST match at least one
+                should_include_file = any(
+                    fnmatch.fnmatch(rel_path_str, pattern) for pattern in include_patterns
+                )
+
+            if should_include_file:
+                logging.debug("Including file: %s", rel_path)
+                file_tree.append(f"📄 {rel_path}")
+                # Store relative path for the tree/prompt, and a getter capturing the absolute path
+                files_to_read.append((rel_path, build_file_content_getter(path)))
+            else:
+                logging.debug("Skipping file %s due to not matching include patterns", rel_path)
+
+        # Note: Symlinks and other file types are currently ignored by this logic
+
+    return file_tree, files_to_read
+
+
+def build_file_content_getter(file_path: Path) -> Callable[[], str]:
+    """Builds a closure to lazily read file content."""
+    absolute_path = file_path.resolve()  # Ensure we capture the absolute path
+
+    def get_content() -> str:
+        try:
+            # Specify encoding, handle potential errors
+            with absolute_path.open("r", encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except FileNotFoundError:
+            logging.error("File not found when trying to read content: %s", absolute_path)
+            return "[Error: File not found]"
+        except Exception as e:
+            logging.error("Error reading file %s: %s", absolute_path, e)
+            # Return error message in content - useful for debugging in the prompt
+            return f"[Error reading file: {e}]"
+
+    return get_content
 
 
 def generate_prompt(
-    repo_path: str | Path,
-    exclude_patterns: list[str] | None = None,
-    include_patterns: list[str] | None = None,
-    output_file: str | Path | None = None,
+    repo_path: Path,
+    exclude_patterns: list[str],
+    include_patterns: list[str],
+    output_file: Path | None = None,
     *,
     respect_gitignore: bool = True,
-) -> str:
+) -> None:
     """
     Generate a prompt for AI models containing the file tree and file contents.
 
     Args:
-        repo_path: Path to the Git repository
+        repo_path: Path to the Git repository root directory
         exclude_patterns: List of glob patterns to exclude
-        include_patterns: List of glob patterns to include
+        include_patterns: List of glob patterns to include (files only)
         output_file: Optional file path to write the prompt to
         respect_gitignore: Whether to respect .gitignore files
 
     Returns:
-        The generated prompt as a string
-
+        None. Prints to stdout or writes to the specified file.
     """
-    repo_path_obj = Path(repo_path).resolve()
-    repo_name = repo_path_obj.name
+    # Configure basic logging
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+    try:
+        repo_path_obj = Path(repo_path).resolve(strict=True)  # Ensure path exists
+        repo_name = repo_path_obj.name
+    except FileNotFoundError:
+        logging.error("Repository path not found: %s", repo_path)
+        print(f"Error: Repository path not found: {repo_path}")
+        return
+    except Exception as e:
+        logging.error("Error resolving repository path %s: %s", repo_path, e)
+        print(f"Error resolving repository path {repo_path}: {e}")
+        return
+
+    logging.info("Generating file tree for %s", repo_path_obj)
+    logging.info("Exclude patterns: %s", exclude_patterns)
+    logging.info("Include patterns: %s", include_patterns)
+    logging.info("Respect gitignore: %s", respect_gitignore)
 
     file_tree, files_content = generate_file_tree(
         repo_path_obj,
@@ -208,26 +253,65 @@ def generate_prompt(
         respect_gitignore=respect_gitignore,
     )
 
-    # Build the prompt
-    prompt = f"# Repository: {repo_name}\n\n"
+    # Build the prompt header
+    prompt_header = f"# Repository: {repo_name}\n\n"
+    prompt_header += "## File Tree Structure\n\n"
+    if file_tree:
+        prompt_header += "```\n" + "\n".join(file_tree) + "\n```"
+    else:
+        prompt_header += "No files or directories found matching the criteria."
+    prompt_header += "\n\n"
+    prompt_header += "## File Contents\n\n"
 
-    # Add file tree
-    prompt += "## File Tree Structure\n\n"
-    prompt += "\n".join(file_tree)
-    prompt += "\n\n"
+    # --- Output Handling ---
+    writer: Callable[[str], int | None] = lambda _: 0
+    output_stream = None
+    try:
+        if output_file:
+            output_path = Path(output_file).resolve()
+            output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+            output_stream = output_path.open("w", encoding="utf-8")
+            writer = output_stream.write
+            logging.info("Writing prompt to file: %s", output_path)
+        else:
+            # Use print for stdout, handling potential encoding issues
+            import sys
 
-    # Add file contents
-    prompt += "## File Contents\n\n"
-    for file_info in files_content:
-        prompt += f"### {file_info['path']}\n\n"
-        prompt += "```\n"
-        prompt += file_info["content"]
-        prompt += "\n```\n\n"
+            writer = lambda text: print(text, end="", flush=True, file=sys.stdout)
+            logging.info("Printing prompt to standard output.")
 
-    # Write to file or print
-    if output_file:
-        output_path = Path(output_file)
-        with output_path.open("w", encoding="utf-8") as f:
-            f.write(prompt)
+        # Write header
+        _ = writer(prompt_header)
 
-    return prompt
+        # Write file contents incrementally
+        if not files_content:
+            _ = writer("No file contents included based on criteria.\n")
+
+        for file_path, content_getter in files_content:
+            # Use the relative path for display
+            relative_path_str = str(file_path)
+            _ = writer(f"### `{relative_path_str}`\n\n")
+            # Determine language for markdown code block if possible (simple extension mapping)
+            lang = file_path.suffix.lstrip(".") if file_path.suffix else ""
+            _ = writer(f"```{(lang)}\n")  # Add lang hint if available
+            # Call the getter to read content only when needed
+            try:
+                content = content_getter()
+                _ = writer(content)
+            except Exception as e:
+                # Should be caught by getter, but as a fallback
+                logging.error("Unexpected error getting content for %s: %s", file_path, e)
+                _ = writer(f"[Error retrieving content: {e}]")
+            _ = writer("\n```\n\n")
+
+        logging.info("Prompt generation complete.")
+
+    except IOError as e:
+        logging.error("Error writing to output %s: %s", output_file or "stdout", e)
+        print(f"Error writing output: {e}")
+    except Exception as e:
+        logging.error("An unexpected error occurred during prompt generation: %s", e)
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        if output_stream:
+            output_stream.close()
